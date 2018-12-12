@@ -16,7 +16,7 @@ D:  Randomize dungeon layouts.  Each dungeon has 8 floors and the randomizer onl
 
 R#: Randomize items in search locations.  This includes all search locations, including the fungus and manroot search spots as well as item bearing chests (not the virtue killing gold ones). If the # is 1 then the fungus and manroot spots will be excluded in the shuffling.  Does not include the chests for avatar equipment in Lyceaum and Empath Abbey.  Magincia might not be a useless place to visit after all...
 
-O:  Randomize moongate exit locations.  For example, new moons can go to Jhelom instead of Moonglow.
+O:  Randomize moongate exit locations.  For example, new moons can go to Jhelom instead of Moonglow.  Note that using this flag is likely to change the order of towns you see in the Gate spell menu; this is to ensure that the Gate spell actually sends you to the destination you specify.
 
 V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=set all virtues to 99.  Use V2 to avoid all that virtue grinding.
 
@@ -35,7 +35,7 @@ H#:  Randomize starting herbs.  The # means the following: 1=shuffle initial her
 
 
 III.  Notes on map generation
-I didn't know what to put here so I decided to simply describe the map generation algorithm at the end.  Just note that the algorithm is slightly biased toward placing things on the sea, as a lot of things are reqired to be there, and that the game uses visibility zones to control what is visible as you traverse the map.  The abyss is always on a crater, and the map has a maximum of three accessible craters to check. Currently, no attempt is made to place shrines and dungeons closest to their corresponding virtue towns, so anything can be anywhere.
+I didn't know what to put here so I decided to simply describe the map generation algorithm at the end.  Just note that the algorithm is slightly biased toward placing things on the sea, as a lot of things are reqired to be there, and that the game uses visibility zones to control what is visible as you traverse the map.  The abyss is always on a crater, and the map has a maximum of three accessible craters to check. Currently, no attempt is made to place shrines and dungeons closest to their corresponding virtue towns, so anything can be anywhere.  
 
 
 
@@ -106,6 +106,8 @@ After that the map is smoothed, which adds in shrub around the forests, plateus 
 
 Now we palce points of interest (POI).  All POI are given a rectangle that no other POI can land on to ensure that nothing gets overwritten.
 
+Place the abyss, which must be on a volcanic island and must be placed on the map's center diagonal line (any place on the line x = y; the devs compared both the x and y to the same value in the original code).  Find each volcanic island and get the crater spots on them.  While there are more than 3 crater spots, replace one of them with lava. Finally select one of them as the Abyss.  If there are no crater spots then one is created and made the abyss.
+
 Place the 8 virtuous towns.  The 8 Vituous towns are placed on either a non-mountain zone or feature.  These features attempt to not be the same feature as another vituous town.  2 of them must be placed on islands.  Place the town and surround it with a box of plains tiles.
 
 Place the 8 moongates, each in a small knight's move away from the virtuous towns.  Partition the box from the moongate to the town into 2..4 random smaller boxes and fill each small box with plains or shrub.  Surround the moongate with four plains.
@@ -117,8 +119,6 @@ Place the 8 shrines.  Shrines can be on practically any feature, even shoals.  P
 Place the castles.  The 4 castles can be on any forest or plains zone.  Find a sea anchor for the zone via floodfill and move the castle in a small knight's move away from that anchor.  make it a 4x4 area with plains and the 4 castle spots (castle W, castle E and the 2 castle flags) in the center.
 
 Place the other towns.  These have the same rules as placing viruous towns.  The first 2 of them require sea anchors.
-
-Place the abyss, which must be on a volcanic island.  Find each volcanic island and get the crater spots on them.  While there are more than 3 crater spots, replace one of them with lava. Finally select one of them as the Abyss.  If there are no crater spots then one is created and made the abyss.
 
 Now ensure access to each location via floodfill checks.  Each location needs access to a virtuous town, with moongates requiring walk access and each other location reqiring walk or sea access.  Ensure access by drawing a line from the edge of the inwardly accessible tile to the nearest openly accessable tile. Two dungeons do not require walk or sea access and are instead given balloon access (a 2x2 area of plains in a spot that is walk accessible to the dungeon).
 
