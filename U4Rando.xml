@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch4jConfig>
-  <dontWrapJar>true</dontWrapJar>
+  <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>U4Rando.jar</jar>
+  <jar>C:\Users\AaronX\Desktop\U4Rando.jar</jar>
   <outfile>C:\Users\AaronX\Desktop\U4Rando.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
@@ -18,7 +18,7 @@
     <path></path>
     <bundledJre64Bit>false</bundledJre64Bit>
     <bundledJreAsFallback>false</bundledJreAsFallback>
-    <minVersion>1.6</minVersion>
+    <minVersion>1.6.0</minVersion>
     <maxVersion></maxVersion>
     <jdkPreference>preferJre</jdkPreference>
     <runtimeBits>64/32</runtimeBits>
