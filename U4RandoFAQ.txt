@@ -14,23 +14,36 @@ M#:  Randomize overworld map.  Begins with a sea border equal to 5 times # on ea
 
 D:  Randomize dungeon layouts.  Each dungeon has 8 floors and the randomizer only randomizes floors 2-7 of each dungeon *except* Hythloth, which remains the same. That is, floors 2-7 of each dungeon except Hythloth are shuffled and assigned to the other dungeons.  For example Deceit could be Deceit B1, Covetous B4, Destard B7, Shame B6, Deceit B3, Wrong B4, Despise B2, and Deceit B8.  Stairs are added and removed to get to each part of the dungeon as needed. 
 
+O:  Randomize moongate exit locations.  For example, new moons can go to Jhelom instead of Moonglow.  Note that using this flag is likely to change the order of towns you see in the Gate spell menu; this is to ensure that the Gate spell actually sends you to the destination you specify.
+
+B:  Move the balloon to Castle Britannia.  The balloon location is reset every time you leave Castle Britannia rather than leaving Hythloth.  This flag was inspired by Final Fantasy Free Enterprise.
+
+T:  Randomize spells taught by spell teaching villagers.  Any villager with text that gives you a spell has its text randomly swapped with text of another villager that gives you a spell.
+
+A:  Randomize enemy skills.  There are 14 enemy skill sets in the game; this flag sets each enemy to get a random skill set.  Note: The 2nd to last fight in the Abyss has limitations on enemy skills; they cannot use set 6 (25% sleep), set 8 (25% negate), or set 12 (sleep missile attack), and at most 1 can have set 13 (12.5% fire, 6.25% tremor, 6.25% sleep).
+
+E#: Tough enemies.  A tough enemy has its HP, attack, and defense tripled, and gives 5 times the experience.  There are 41 enemies in this game.  The # is a bit field with values treated as follows:
+1: Make 25% of the enemies tough (10 enemies become tough).
+2: Make 50% of the enemies tough (20 enemies become tough).  Options 1 and 2 can be combined to make 75% (30) of the enemies tough.
+4: Make all dungeon-only enemies tough.  The dungeon-only enemies are the Bat, the Gremlin, the Mimic, the Reaper, the Slime, the Spider, and the 8 enemies in the 2nd to last fight in the Abyss.
+Note: Enemy HP, attack, and exp are capped at 255 while defense is capped at 192.  (I highly recommend trying the Abyss with Tough Enemies; the last 2 rooms feel like a real challenge).  Any enemy with the Gazer skill (#12) has its attack and defense only doubled rather than tripled.
+
 R#: Randomize items in search locations.  The # in this flag is treated as a bit field.  The values are interpreted as follows:
 0:  Randomize items in search locations, not including the Avatar only chests in Lyceaum and Empath Abbey.
-1:  Also exlude the Fungus and Manroot search spots on the map.  (This is recommended because at this time the villagers do not properly tell you where these spots are).
+1:  Also exlude the Fungus and Manroot search spots on the map.  *New in ver 1.2: Basil of Moonglow  gives the proper location for Fungus and Calumney of Yew gives the proper location for Manroot.  (This option is still recommended as you are required to go through a lenghty clue chain to get either location, and you need the sextant to actually find them).
 2:  Include the Sword of Paradise and Exotic Armor in search spots.  If this flag is set, any Rune is excluded from being placed in the Lyceaum and Empath Abbey Avatar-only search spots.
 4:  Switch the Sword of Paradise and Exotic Armor for a random sword and armor, respectively.
-
-O:  Randomize moongate exit locations.  For example, new moons can go to Jhelom instead of Moonglow.  Note that using this flag is likely to change the order of towns you see in the Gate spell menu; this is to ensure that the Gate spell actually sends you to the destination you specify.
+Note: This flag also eliminates the new moons check on the new moons search spot (that contains the black stone of Humility) as that check was tied to the item itself rather than the search spot; you can therefore check the new moons moongate search spot at anytime and get the item
 
 C#:  Boost values of gold chests.  Adds 25 times # to each gold chest you open, up to a maximum of adding 150 gold.
 
-V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=set all virtues to 99.  3=start off as the avatar.  Use V2 to avoid all that virtue grinding.
+V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=set all virtues to 99.  3=start off as the avatar.  Use V2 or v3 to avoid all that virtue grinding.
 
 G#: Randomize initial gold.  The # means the following: 0=set initial gold to 0, 1=set it to a random number between 0 and 400, 2=set it to a random number between 0 and 1000.
 
-B#:  Randomize equippable weapons and armor for each character.  Each piece of equipment has an 8-bit value designating who can use that piece of equipment.  The # means the following: 1=Shuffle the character(s) who can use the equipment (shift any 1s to a random value; for example the Robe can only be used by the Shepherd and setting this flag makes the Robe usable by exactly one random class).  2=Pure randomization of this number (it is possible for any equipment to be used by any combination of characters).
+Q#:  Randomize equippable weapons and armor for each character.  Each piece of equipment has an 8-bit value designating who can use that piece of equipment.  The # means the following: 1=Shuffle the character(s) who can use the equipment (shift any 1s to a random value; for example the Robe can only be used by the Shepherd and setting this flag makes the Robe usable by exactly one random class).  2=Pure randomization of this number (it is possible for any equipment to be used by any combination of characters).
 
-Q#:  Randomize starting equipment for each character.  Each character gets 1 weapon and 1 piece of armor.  The # means the following: 1=shuffle existing starting equipment, 2=have each character start with a random weapon and a random armor (does not give Avatar-only equipment).
+I#:  Randomize initial equipment for each character.  Each character gets 1 weapon and 1 piece of armor.  The # means the following: 1=shuffle existing starting equipment, 2=have each character start with a random weapon and a random armor (does not give Avatar-only equipment).
 
 Additional note: Using either B or Q sets character inital equipment to be unequipped.
 
@@ -52,56 +65,25 @@ I didn't know what to put here so I decided to simply describe the map generatio
 IV.  Future Development
 The following flags are things that I would like to implement, and are an open discussion to see what changes could be made to the game for a more engaging experience.
 Also, the current version doesn't change the closing credits in any way to acknowledge that roms are generated via a randomizer.  Furthermore, I am not sure about how gems and the Telesope work on the overworld map (but they should work fine in dungeons).
+Realistically, this version will be the difinitive version for a while.  I need to spend my time on other things and time developing this will drop a lot (unless major bugs are found).
 
-k:  Disable the Blink spell. This spell is brokenly powerful for its cost.  Is discretion really the better part of Valor, Avatar, or are you just another coward? *IMPLEMENTED in ver. 1.1*
+- Additional stability (rolling a seed fails between 10 and 20% of the time)
 
-D:  Full Dungeon randomization including floors 1, 8, and all Hythloth floors.  The current flag would be changed to "d".  I consider this too risky for version 1 as you could find rooms to Altars in early floors.
+- Random shop swapping
 
-I:  Helpful villagers.  This will require much work as all game text is huffman encoded.
+- Elimination of busywork, such as needing to complete clue chains for search locations and needing to visit Spells Unlimited. (It's still up in the air about how possible this will be)
 
-K:  Randomize initially known magic spells.  This will require editing in villager text to give you the reagents for spells you don't know.  *Partaily implemented in ver. 1.1*
+- Chaos mode (randomization of prices as well as many other things)
 
-j:  Randomize spell reagents required.
+This list seems chopped down from previous versions of the FAQ because it is.  Again, time I spend developing this will drop significanly once major bugs have been eliminated.
 
-J:  Randomize spell casting costs.
+The following features could be implemented given sufficent time and demand:
 
-e:  Randomize enemy stats.
+- Replacing Hawkwind with a character select (will take about 2-3 weeks)
 
-E:  Tough enemy stats.
+- Making the telescope and gems work outside (will take about 2 weeks)
 
-x:  Fix text.  Dastard, not Destard.  Ranger, not ranger.  Fix stone conversations so that the proper answers give the proper outcomes. (Example: Orange stone proper answer should be "No" not "Yes"). 
-
-L, l:  One of the most brokenly powerful mechanics is that you can get magic basically for free by just ripping off the blind herb ladies. The lower case "l" option forces you to pay at least half of the price the herb lady is asking for, "L" forces full price.
-
-N: Honest pricing overall.  Forces you to pay 100% of the price to the herb lady and eliminates price negotiation at weapon and armor shops.
-
-T: Randomizes store selling lists.
-
-C: Randomizes store prices.
-
-S: Stern mode. Strong virtue penalties.  Any action that would cause you to lose virtue sets that virtue to 0.
-
-V3: Start as avatar. *IMPLEMENTED in ver 1.1*
-
-F: Perfection mode.  Eliminate the ability to gain virtue.  You start with 100 in each virtue but you cannot gain any virtue; thus any action that will cost you virtue results in a permanent soft-lock.
-
-A: Chaos Mode.  Encompasses all flags except L,P,R, N and F.  Future versions will randomize character and enemy stats.
-
-W: Fast walking.  Walk at 4x the speed you normally go.
-
-w: Begin with Key.
-
-X: Fast text.
-
-Y: Randomize floors 2-7 of the Abyss (got cut from ver. 1.0 because I still need to look at Abyss stair mechanics)
-
-y: Skip the Abyss.
-
-D2:  Make Dungeon Hell levels.  A hell level is one that triggers an enemy encounter every step.
-
-U: Tournament Mode.  Sets the suggested tournament flags MDYROVQbH. 
-
-Again, this is a current comprehensive list of things I could do, but not necessarily will do.  I'm leaning towards options that increase game difficulty by injecting risk (tougher enemies) and speed hacks.  I am leaning against options that take away player agency, such as enforcing fair pricing (it looks like it might be a pain to hack in anyway).
+These features will probably take the most time as they require additional familiarity with the PPU and require that I edit game graphics.
 
  
 Addendum 1.  The Map Generation Algorithm
