@@ -4,6 +4,14 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.2:
+- You can set the balloon to be next to Castle Britannia (instead of outside Hythloth)
+- Calumney of Yew gives the proper location for Manroot and Basil of Moonglow gives you the proper location for Fungus
+- You can now randomize enemy attacks
+- You can now randomly make enemies tougher (25, 50, or 75% of the game's enemies have thier HP, attack and defense tripled and give 5x the EXP)
+- You can now randomize the spells given to you by spell-teaching villagers
+- The Black Stone of Humility can be picked up at anytime; no need to wait for new moons
+
 New in ver 1.1:
 - You can now start as Avatar
 - You can now add a sea border to generated maps (to make them smaller)
@@ -13,9 +21,9 @@ New in ver 1.1:
 - Also fixed a UI bug.
 - There is a known UI inconsistency where the flag order in the UI and the flag order in the generated ROM will be different.  This may be fixed in a future version.
 
-Recently discovered bugs:
-- Some flag combinations really mess up randomized dungeons
-- Randomizing spells resets the game once you try to create a new file
-- There is a chance to lose some randomly placed items and possibly soft-lock your seed
+Known bugs and issues:
+- The negate spell doesn't always wear off after battles (it will wear off if you enter a new battle)
+- The stairs in dungeon stone rooms do not work (you will need to step outside and cast exit)
+- Basil's text doesn't stop after the second phrase and Calumney's text has a minor graphical artifact
 
 Note: Some interest was expressed in the source code for this Rando.  I have uploaded the lastest java file.  I use launch4j to build the downloadable Windows executable; feel free to look at/play with/suggest bug fixes.
