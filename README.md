@@ -25,5 +25,6 @@ Known bugs and issues:
 - The negate spell doesn't always wear off after battles (it will wear off if you enter a new battle)
 - The stairs in dungeon stone rooms do not work (you will need to step outside and cast exit)
 - Basil's text doesn't stop after the second phrase and Calumney's text has a minor graphical artifact
+- The overworld map doesn't always open up your vision to beyond a 3x3 area after exiting a forest or exiting a battle on a forest next to an open area
 
 Note: Some interest was expressed in the source code for this Rando.  I have uploaded the lastest java file.  I use launch4j to build the downloadable Windows executable; feel free to look at/play with/suggest bug fixes.
