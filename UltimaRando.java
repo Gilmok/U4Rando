@@ -127,10 +127,12 @@ class NESRom
 		boolean randomizeMap = false;
 		boolean randomizeMoongates = false;
 		boolean britBalloon = false;
-		boolean changedSpellTeachers = false;
+		boolean changeSpellTeachers = false;
+		int changeShops = -1;
+		int dungeonPostProcessing = -1;
 		LinkedHashMap<String, Integer> flagMap = new LinkedHashMap<String, Integer>();
-		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "R", "E", "C", "V", "Q", "I", "H", "G", "S",};
-		boolean[] usesVal = {true, false, false, false, false, false, true, true, true, true, true, true, true, true, true};
+		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E", "C", "V", "Q", "I", "H", "G", "S", "Y"};
+		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true, true, true, true, true, true, true, true, true};
 		for(int i = 0; i < okFlags.length; i++)
 			flagMap.put(okFlags[i], -1);
 		while(flags.length() > 0)
@@ -180,7 +182,7 @@ class NESRom
 				break;
 			case 'D':
 				Dungeon[] ds = UltimaRando.randomizeDungeons(this);
-				this.changeDungeonBlock(ds);
+				dungeonPostProcessing = this.changeDungeonBlock(ds);
 				break;
 			case 'O':
 				randomizeMoongates = true;
@@ -192,11 +194,17 @@ class NESRom
 					britBalloon = true;
 				break;
 			case 'T':
-				changeSpellTeachers();
-				changedSpellTeachers = true;
+				//changeSpellTeachers();
+				changeSpellTeachers = true;
 				break;
 			case 'A':
 				changeEnemyAI();
+				break;
+			case 'P':
+				changeShops = val;
+				break;
+			case 'W':
+				changeViewSpell();
 				break;
 			case 'R':
 				this.changeSearchLocItems(UltimaRando.shuffleSearchItems(this.getSearchLocItems(val), val), val);
@@ -237,6 +245,21 @@ class NESRom
 			case 'S':
 				changeInitSpells(ch.getRandomInitSpells(val));
 				break;
+			case 'Y':
+				changeAbyssLength(val, dungeonPostProcessing);
+				break;
+			}
+		}
+		if(changeSpellTeachers || changeShops > -1)
+		{
+			if(changeSpellTeachers && changeShops > -1)
+				changeSpellsAndShops(changeShops);
+			else 
+			{
+				if(changeSpellTeachers)
+					changeSpellTeachers();
+				else if(changeShops > -1)
+					changeShopLocations(changeShops);
 			}
 		}
 		//randomize map and moongates
@@ -266,6 +289,10 @@ class NESRom
 		{
 			byte[][] mgate = getRandomMoongates();
 			changeMoongateLocs(mgate[0], mgate[1]);
+		}
+		if(outFileName == null)
+		{
+			return null;
 		}
 		File f = new File(outFileName);
 		String fn = f.getName();
@@ -486,7 +513,7 @@ class NESRom
 		//at this point we need to flip the code that checks for Hythloth's exit to move the balloon and
 		//the code that sets your overworld x and y after leaving a location
 		romData[256307] = 74;  //execute the earlier code
-		String s = "a5 4b 29 bf c9 2f d0 03 ad 62 0c a2 00 dd f3 ea f0 06 e8 e0 26 90 f6 60 c9 01 d0 0d a9 ";
+		String s = "a5 4b 29 bf c9 2f d0 03 ad c2 06 a2 00 dd f3 ea f0 06 e8 e0 26 90 f6 60 c9 01 d0 0d a9 ";
 		s += Integer.toHexString(britBalloon.x) + " 8d f0 68 a9 ";
 		s += Integer.toHexString(britBalloon.y) + " 8d f1 68 ea ea ea 8a 0a";
 		byte[] fx = strToBytes(s);
@@ -862,17 +889,17 @@ class NESRom
 		romData[218454] = g2;
 	}
 	
-	public void changeChestGold(int newVal)
+	public void changeChestGold(int newVal) //uses ffa9-ffb3
 	{
 		if(newVal <= 6)
 			newVal *= 25;
 		String ff = "69 " + Integer.toHexString(newVal) + " e8 e8 9d 01 01 6d 27 68 60";
 		//String f2 = "ac 15 68 a9 63 99 90 68 99 98 68 20 d2 cc 60";
 		byte[] fcb = strToBytes(ff);
-		int ff1 = 262078;
+		int ff1 = 262073;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
-		String fcall2 = "20 ae ff";  //->ffae
+		String fcall2 = "20 a9 ff";  //->ffa9
 		fcb = strToBytes(fcall2);
 		ff1 = 248437;
 		for(int i = 0; i < fcb.length; i++)
@@ -903,6 +930,7 @@ class NESRom
 		int ff1 = 229370;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];*/
+		//put avatar loader in D:3f04
 		String f2 = "a9 ff 8d 14 68 ac 15 68 a9 63 99 90 68 99 98 68 4c 42 c2";
 		byte[] fcb = strToBytes(f2);
 		int ff1 = 229140;
@@ -913,6 +941,62 @@ class NESRom
 		ff1 = 221785;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+	}
+	
+	public void changeViewSpell() //uses ffa1-ffa8
+	{
+		//point F:FE75 (3fe85) to jump to ffa1
+		String aa = "a1 ff";
+		byte[] bts = strToBytes(aa);
+		for(int i = 0; i < bts.length; i++)
+			romData[261765 + i] = bts[i];
+		//ffa1 instructs you to jump to bf70 on page 7
+		String jf = "a9 07 20 31 f3 4c 70 bf";
+		bts = strToBytes(jf);
+		for(int i = 0; i < bts.length; i++)
+			romData[262065 + i] = bts[i];
+		//put main string selector at 7:BF6C (1ff7c)
+		String ssel = "c6 2a c6 2a 20 12 bf ad e0 06 c9 08 d0 f2 ";
+		ssel += "a9 00 8d e0 06 8d e4 06 4c 31 f3";
+		bts = strToBytes(ssel);
+		for(int i = 0; i < bts.length; i++)
+			romData[130940 + i] = bts[i];
+		//put main string constructor at 7:BF12 (1ff22)
+		String scon = "ba 86 2b a2 3f a9 00 8d e1 06 8d e2 06 ac e3 06 ";
+		scon += "ad e4 06 d0 05 b9 00 62 50 03 b9 00 63 ";
+		scon += "c9 05 d0 03 ee e1 06 ";
+		scon += "c9 32 d0 03 ee e2 06 ";
+		scon += "c8 d0 03 ee e4 06 ca 10 dc 20 d0 bf ee e0 06 8c e3 06 ";
+		scon += "a2 02 a9 00 48 bd e0 06 48 ca 10 f6 ";
+		scon += "a9 60 85 28 a9 c9 85 29 ";
+		scon += "a9 bf 48 a9 b0 48 4c 42 c2";
+		bts = strToBytes(scon);
+		for(int i = 0; i < bts.length; i++)
+			romData[130850 + i] = bts[i];
+		//put execution chain at 7:BFA8 (1ffb8) - not necessary
+		/*String ec = "fe ca 67 cb 31 c3";
+		bts = strToBytes(ec);
+		for(int i = 0; i < bts.length; i++)
+			romData[131000 + i] = bts[i];*/
+		//put skeleton string at 7:BFB0 (1ffc0)
+		String sstr = "16 00 1c 1f 1f 22 00 06 08 1c 00 0c 00 08 1c 06 00 13 18 15 23 24 23 0d 3e ";
+		sstr += "00 08 1c 06 00 23 24 1f 1e 15 23 3f";
+		bts = strToBytes(sstr);
+		romData[131008] = (byte) bts.length;
+		TextFinder tf = new TextFinder(this);
+		bts = tf.compressSpokenBytes(bts);
+		for(int i = 0; i < bts.length; i++)
+			romData[131009 + i] = bts[i];
+		
+		//stone test at 7:BFD0 (1ffe0)
+		String stnt = "ad e2 06 f0 19 ae e0 06 bd d1 06 38 e9 80 c9 06 f0 09 aa bd e7 cf 2d 19 68 f0 03 ce e2 06 60";
+		bts = strToBytes(stnt);
+		for(int i = 0; i < bts.length; i++)
+			romData[131040 + i] = bts[i];
+		
+		//finally, disable the View spell on the overworld map
+		//F:ECE9 (3ecf9) -> 8
+		romData[257273] = 8;
 	}
 	
 	public void changeInitSpells(byte[] newSpells)
@@ -961,14 +1045,72 @@ class NESRom
 	
 	public void changeSpellTeachers()
 	{
-		villagerSwap(0);
-		villagerSwap(1);
+		villagerSwap(0, 0);
+		villagerSwap(1, 0);
 		
 	}
 	
-	public void changeBusywork(boolean cst)
+	public void changeShopLocations(int mode)
 	{
-		if(cst)
+		villagerSwap(0, 0);
+		villagerSwap(2, mode);
+	}
+	
+	public void changeSpellsAndShops(int mode)
+	{
+		villagerSwap(0, 0);
+		villagerSwap(3, mode);
+	}
+	
+	public void changeAbyssLength(int val, int dungPostProcessingLoc)  //uses only bank 9 if dungeons are randomized, else uses ff78-ff88
+	{
+		val--;
+		String a1 = "79 01 29 3f 09 1f 1b 09";
+		byte[] floorStart = strToBytes(a1);
+		
+		//F:EBBC (3ebcc) is floorStart[val]
+		romData[256972] = floorStart[val];
+		
+		String call = "";
+		int callLoc = 0;
+		if(dungPostProcessingLoc != -1)
+		{
+			call = bytesToStr(getData(dungPostProcessingLoc, dungPostProcessingLoc + 2));
+			//call = call.toLowerCase();
+			callLoc = dungPostProcessingLoc;
+		}
+		else
+		{
+			//point e5d6 to call shortAbyss selector (f:e5d6, or 3e5e6)
+			String selHook = "20 78 ff";
+			byte[] sh = strToBytes(selHook);
+			for(int i = 0; i < sh.length; i++)
+				romData[255462 + i] = sh[i];
+			
+			//place abyssSelector at ff78 (f:ff88, or 3ff88)
+			String abyssSelect = "a5 4b c9 87 d0 03 20 d8 bf 20 a3 e5 60";
+			byte[] nf = strToBytes(abyssSelect);
+			for(int i = 0; i < nf.length; i++)
+				romData[262024 + i] = nf[i];
+			callLoc = 262030;
+		}
+		
+		String shortAbyss = "a5 4b c9 87 d0 05 a9 0" + val + " 8d c1 06 a9 00 " + call + "60";
+		//put it at 9:BFD8 (27fe8)
+		byte[] nf = strToBytes(shortAbyss);
+		for(int i = 0; i < nf.length; i++)
+			romData[163816 + i] = nf[i];
+		
+		String rep = "20 d8 bf";
+		byte[] rb = strToBytes(rep);
+		for(int i = 0; i < rb.length; i++)
+			romData[callLoc + i] = rb[i];
+		
+	}
+	
+	public void changeBusywork(boolean cst)  //may not be doable
+	{
+		/*if(cst)
 			villagerSwap(3);
 		else
 		{
@@ -976,7 +1118,7 @@ class NESRom
 			villagerSwap(2);
 		}
 		romData[249912] = 27;
-		romData[249915] = 27;
+		romData[249915] = 27;*/
 	}
 	
 	private void toughenEnemy(int idx)
@@ -1084,30 +1226,50 @@ class NESRom
 		}
 	}
 	
-	private void villagerSwap(int mode)
+	private void villagerSwap(int mode, int val)  //uses ffb4-ffc2
 	{
 		if(mode == 0)
 		{
 			//villager swap involves swapping the event of two villagers; 
 			//it is code intensive because it spans multiple memory pages
-			//step 1: line ec4a (3ec5a) calls ffc9
-			String code = "4c c9 ff";
+			//step 1: line ec4a (3ec5a) calls ffb4
+			String code = "4c b4 ff";
 			byte[] bts = strToBytes(code);
 			int s = 257114;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
-			//step 2: ffc9 (3ffd9) swaps to page 3 and calls be46
+			//step 2: ffb4 (3ffc4) swaps to page 3 and calls be46
 			code = "a9 03 20 33 f3 4c 46 be";
 			bts = strToBytes(code);
-			s = 262105;
+			s = 262084;
+			int l1 = bts.length + s;
+			for(int i = 0; i < bts.length; i++)
+				romData[s + i] = bts[i];
+			//step 2a: line d892 (3d8a2) calls ffbc
+			code = "20 bc ff";
+			bts = strToBytes(code);
+			s = 252066;
+			for(int i = 0; i < bts.length; i++)
+				romData[s + i] = bts[i];
+			//step 2c: ffbc loads the proper shop cleanup page and calls f333
+			code = "ad dc 06 20 33 f3 60";
+			bts = strToBytes(code);
+			s = l1;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
 			//step 3: page 3 be46 (0fe56) captures the city index, villager index, and swap-to page
-			//it is a 73 byte monstrosity
-			code = "a5 53 8d de 06 a5 54 8d df 06 a5 4c 8d dd 06 ";  
-			code += "ea ea ea 68 a2 00 a8 bd 90 be d0 05 98 48 4c a7 bf ";
-			code += "98 dd 90 be d0 07 a5 53 dd 91 be f0 07 18 8a 69 06 aa d0 e2 ";
-			code += "bd 92 be 48 bd 93 be 85 53 bd 94 be 85 54 bd 95 be 85 4c 4c a7 bf";
+			//it then looks to find the villager you are talking to in a replacement table, depending on
+			//which villagers have been swapped; note that the swap-to page is stored twice to ensure compatibility with
+			//shop swap
+			//if a villager's index and city index is found in the table, hot swap in the 2 byte city index, the page index, and 
+			//push the villager index on the stack
+			//if a 0 is found, exit the function
+			//it is a 76 byte monstrosity in total
+			String[] a0 = {"93", "94", "95", "96", "97", "98"};
+			code = "a5 53 8d de 06 a5 54 8d df 06 a5 4c 8d dd 06 8d dc 06 "; //store off current city index and current memory page
+			code += "68 a2 00 a8 bd " + a0[0] + " be d0 05 98 48 4c a7 bf ";  //pull off villager index, store in y, and exit if 0 is the next entry in the table
+			code += "98 dd " + a0[0] + " be d0 07 a5 53 dd " + a0[1] + " be f0 07 18 8a 69 06 aa d0 e2 ";  //also test city index and if not equal move to the next table entry
+			code += "bd " + a0[2] + " be 48 bd " + a0[3] + " be 85 53 bd " + a0[4] + " be 85 54 bd " + a0[5] + " be 85 4c 8d dc 06 4c a7 bf";  //if found, do the hot swap of city index and page index
 			bts = strToBytes(code);
 			s = 65110;
 			for(int i = 0; i < bts.length; i++)
@@ -1139,57 +1301,287 @@ class NESRom
 					romData[s + i] = bts[i];
 			}
 		}
-		//start the array at fea0
-		int arr = 65184;
-		if(mode == 1)  //put the spell teacher villager swaps in
+		//start the array at fea3 - this array has room for 40 swaps
+		int arr = 65187;
+		if((mode & 1) == 1)  //put the spell teacher villager swaps in (9 swaps)
 		{
-			ArrayList<Integer> ints = new ArrayList<Integer>();
-			byte[][] src = new byte[9][];
-			byte[][] dest = new byte[9][];
-			for(int i = 0; i < 9; i++)
-			{
-				ints.add(i);
-				src[i] = new byte[2];
-				dest[i] = new byte[4];
-			}
 			String ssrc = "08 b2 09 ee 0a 85 0a eb 04 c6 08 63 09 bf 0e ee 0d dc";
-			byte[] sbs = strToBytes(ssrc);
-			for(int i = 0; i < sbs.length; i += 2)
-			{
-				src[i / 2][0] = sbs[i];
-				src[i / 2][1] = sbs[i + 1];
-			}
 			String sdest = "08 b2 ba 06 09 ee ab 02 0a 85 bb 07 0a eb b8 03 04 c6 af 05 08 63 a5 07 09 bf a9 01 0e ee ab 02 0d dc a8 05";
-			byte[] sbd = strToBytes(sdest);
-			for(int i = 0; i < sbd.length; i += 4)
-			{
-				for(int j = 0; j < 4; j++)
-					dest[i / 4][j] = sbd[i + j];
-			}
-			int k = 0;
-			while(ints.size() > 0)
-			{
-				int r = (int) (UltimaRando.rand() * ints.size());
-				int s = ints.remove(r);
-				for(int i = 0; i < src[k].length; i++)
-				{
-					romData[arr] = src[k][i];
-					arr++;
-				}
-				for(int i = 0; i < dest[s].length; i++)
-				{
-					romData[arr] = dest[s][i];
-					arr++;
-				}
-				k++;
-			}
+			arr = insertVillagerSwapEntries(arr, ssrc, sdest, 0);
 		}
-		if(mode >= 2)  //put the clue villager swaps in
+		if((mode & 2) == 2)  //put the shop swaps in (17 swaps)
 		{
-			
+			int a1 = arr;
+			String ssrc = "06 dc 04 32 05 b2 08 1d 04 ac ";
+			String sdest = "06 dc a8 05 04 32 a3 08 05 b2 ba 06 08 1d b6 06 04 ac b9 08 ";
+			ssrc += "05 3e 04 4b 05 fe 05 1d 04 85 ";
+			sdest += "05 3e a4 03 04 4b a6 04 05 fe ad 06 05 1d b6 06 04 85 bb 07 ";
+			ssrc += "06 ac 07 3e 06 fe 06 1d ";
+			sdest += "06 ac b9 08 07 3e a4 03 06 fe ad 06 06 1d b6 06 ";
+			ssrc += "04 b2 07 85 07 1d";
+			sdest += "04 b2 ba 06 07 85 bb 07 07 1d b6 06";
+			arr = insertVillagerSwapEntries(arr, ssrc, sdest, val);
+			//find where B.Den's herb shop village is and replace the check
+			//find where Vesper's guild is and replace the check
+			replaceChecksForSecretSale(a1);
 		}
 	}
 	
+	private void replaceChecksForSecretSale(int a1)
+	{
+		String oldIdx = "08 07";
+		byte[] oib = strToBytes(oldIdx);
+		String oldLoc = "1d 85";
+		byte[] olb = strToBytes(oldLoc);
+		String newLoc = "dc 32 b2 1d ac 3e 4b fe 85";  //Moonglow, Sk.Brae, Paws, B.Den, Britain, Jhelom, Minoc, Trinsic, Vesper
+		byte[] nlb = strToBytes(newLoc);
+		String replaceWith = "05 0b 10 0d 06 07 09 0a 0e";
+		byte[] rwb = strToBytes(replaceWith);
+		int[] rLoc = {16204, 16158};  //3f4c, 3f1e
+		for(int k = 0; k < 2; k++)
+		{
+			for(int i = 0; i < (6 * 17); i += 6)  //17 shop entries
+			{
+				if(romData[a1 + i + 2] == oib[k] && romData[a1 + i + 3] == olb[k])
+				{
+					byte c = romData[a1 + i + 1];
+					for(int j = 0; j < nlb.length; j++)
+					{
+						if(c == nlb[j])
+						{
+							//replace
+							byte d = rwb[j];
+							romData[rLoc[k]] = d;
+							break;
+						}
+					}
+					break;
+				}
+			}
+		}
+	}
+	
+	private int insertVillagerSwapEntries(int atLoc, String ssrc, String sdest, int mode)
+	{
+		byte[] sbs = strToBytes(ssrc);
+		byte[] sbd = strToBytes(sdest);
+		int nVils = sbs.length / 2;
+		ArrayList<Integer> ints = new ArrayList<Integer>();
+		byte[][] src = new byte[nVils][];
+		byte[][] dest = new byte[nVils][];
+		for(int i = 0; i < nVils; i++)
+		{
+			ints.add(i);
+			src[i] = new byte[2];
+			dest[i] = new byte[4];
+		}
+		
+		
+		for(int i = 0; i < sbs.length; i += 2)
+		{
+			src[i / 2][0] = sbs[i];
+			src[i / 2][1] = sbs[i + 1];
+		}
+		
+		
+		for(int i = 0; i < sbd.length; i += 4)
+		{
+			for(int j = 0; j < 4; j++)
+				dest[i / 4][j] = sbd[i + j];
+		}
+		int k = 0;
+		int arrayStart = atLoc;
+		while(ints.size() > 0)
+		{
+			int r = (int) (UltimaRando.rand() * ints.size());
+			int s = ints.remove(r);
+			for(int i = 0; i < src[k].length; i++)
+			{
+				romData[atLoc] = src[k][i];
+				atLoc++;
+			}
+			for(int i = 0; i < dest[s].length; i++)
+			{
+				romData[atLoc] = dest[s][i];
+				atLoc++;
+			}
+			k++;
+		}
+		if(mode == 0)
+			return atLoc;
+		else if(mode == 1)
+		{
+			enforceNonCompete(arrayStart);
+			return atLoc;
+		}
+		else
+		{
+			enforceSameShop(arrayStart);
+			return atLoc;
+		}
+	}
+	
+	private void enforceSameShop(int arrayStart) 
+	{
+		int[] shopTypes = {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3};
+		for(int i = 0; i < shopTypes.length; i++)
+		{
+			int l3 = arrayStart + (i * 6) + 2;
+			int l4 = l3 + 1;
+			int sh = getShopType(romData[l3], romData[l4]);
+			if(sh != shopTypes[i])
+			{
+				for(int j = i + 1; j < shopTypes.length; j++)
+				{
+					int l1 = arrayStart + (j * 6) + 2;
+					int l2 = l1 + 1;
+					int s1 = getShopType(romData[l1], romData[l2]);
+					if(s1 == shopTypes[i])
+					{
+						shopSwap(i, j, arrayStart);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	private void enforceNonCompete(int arrayStart) 
+	{
+		int[][] shopLocs = {
+				{3, 8, 13, 16},
+				{2, 14}, {5, 11}, {7, 12},
+				{4, 10}, {9, 15}};
+		ArrayList<Integer> unique = new ArrayList<Integer>();
+		ArrayList<Boolean> avail = new ArrayList<Boolean>();
+		for(int i = 0; i < 17; i++)
+			avail.add(true);
+		for(int i = 0; i < shopLocs.length; i++)
+		{
+			unique.clear();
+			for(int j = 0; j < shopLocs[i].length; j++)
+				avail.set(shopLocs[i][j], false);
+			for(int j = 0; j < shopLocs[i].length; j++)
+			{
+				int l1 = arrayStart + (shopLocs[i][j] * 6) + 2;
+				int l2 = l1 + 1;
+				int s1 = getShopType(romData[l1], romData[l2]);
+				if(unique.contains(s1))  //need to swap
+				{
+					int fail = 0;
+					while(fail < 100)
+					{
+						int r = (int) (UltimaRando.rand() * avail.size());
+						while(true)
+						{
+							if(avail.get(r) == true)
+								break;
+							r++;
+							if(r >= avail.size())
+								r = 0;
+						}
+						int l5 = arrayStart + (r * 6) + 2;
+						int l6 = l5 + 1;
+						int s3 = getShopType(romData[l5], romData[l6]);
+						if(unique.contains(s3))
+							fail++;
+						else
+						{
+							//do the swap and break
+							shopSwap(shopLocs[i][j], r, arrayStart);
+							s1 = getShopType(romData[l1], romData[l2]);
+							break;
+						}
+						if(fail == 100)
+						{
+							//at this point you failed to find a swap
+							if(i != shopLocs.length - 1)  //just keep trying
+							{
+								fail = 0;
+							}
+							else  //weapon shop lock on the last town - swap with any other 2 shop town
+							{
+								r = 0;
+								boolean[] av = new boolean[17];
+								for(int k = 1; k < 5; k++)
+								{
+									for(int l = 0; l < shopLocs[k].length; l++)
+										av[shopLocs[k][l]] = true;
+								}
+								r = (int) (UltimaRando.rand() * 17);
+								while(true)
+								{
+									if(av[r] == true)
+										break;
+									r++;
+									if(r >= av.length)
+										r = 0;
+								}
+								shopSwap(shopLocs[i][j], r, arrayStart);
+								s1 = getShopType(romData[l1], romData[l2]);
+								break;
+							}
+						}
+					}
+				}
+				unique.add(s1);
+			}
+		}
+	}
+	
+	public String listShops(int arrayStart)
+	{
+		int[] shopTypes = new int[17];
+		for(int i = 0; i < 17; i++)
+		{
+			int l3 = arrayStart + (i * 6) + 2;
+			int l4 = l3 + 1;
+			shopTypes[i] = getShopType(romData[l3], romData[l4]);
+		}
+		String[] towns = {"Moonglow", "Skara Brae", "Paws", "Bucaneer's Den", "Britain", "Jhelom", "Minoc", "Trinsic", "Vesper"};
+		int[] shopAt = {0, 1, 2, 3, 4, 5, 6, 7, 3, 8, 4, 5, 7, 3, 2, 8, 3};
+		for(int i = 0; i < 17; i++)
+			towns[shopAt[i]] += " " + shopTypes[i];
+		String rv = "";
+		for(int i = 0; i < towns.length; i++)
+			rv += towns[i] + "\n";
+		return rv;
+	}
+		
+	private void shopSwap(int e1, int e2, int arrayStart)
+	{
+		int l1 = arrayStart + (6 * e1) + 2;
+		int l2 = arrayStart + (6 * e2) + 2;
+		byte[] old = this.getData(l1, l1 + 3);
+		for(int i = 0; i < 4; i++)
+		{
+			romData[l1 + i] = romData[l2 + i];
+			romData[l2 + i] = old[i];
+		}
+	}
+	
+	private int getShopType(byte vil, byte town)  //0:herb, 1:weapon, 2:armor, 3:guild
+	{
+		String ts = Integer.toHexString(town & 255);
+		String[][] in = {
+				{"32","ac", "4b", "85", "b2"},
+				{"b2", "3e", "fe", "1d"},
+				{"dc", "ac", "fe", "1d"},
+				{"3e", "85", "1d"},
+				{"1d"}};
+		int[][] out = {
+				{0, 1, 1, 1, 2},
+				{0, 1, 1, 1},
+				{0, 2, 2, 2},
+				{2, 3, 3},
+				{0}};
+		int vv = vil - 4;
+		for(int i = 0; i < in[vv].length; i++)
+			if(ts.equals(in[vv][i]))
+				return out[vv][i];
+		return -1;
+	}
+
 	public byte[] getInitItems()
 	{
 		byte[] rv = new byte[16];
@@ -1388,7 +1780,7 @@ class NESRom
 		}
 	}
 	
-	public void changeDungeonBlock(Dungeon[] newDs) throws Exception
+	public int changeDungeonBlock(Dungeon[] newDs) throws Exception  //uses ff78-ffa0 + ffc3-ffd0
 	{
 		byte[] oldBlock = getDungeonBlock();
 		byte[] newBlock = new byte[oldBlock.length];
@@ -1427,24 +1819,18 @@ class NESRom
 		int abyssEnd = nbw - 1;
 		//add in some functionality
 		int memBankStart = 147472;
-		int code3 = nbw + memBankStart;  //method to copy stone room data from $06dx to $06d0 when loading floor
-		String hLoad = "a8 bd d1 06 8d d0 06 98 20 39 95 60";
+		
+			
+		int code2 = nbw + memBankStart;  //code to properly load dungeons from the one combined huffman tree (dungeon data offset accumulator)
+		String hLoad = "68 68 a9 2b 85 40 a5 4b e9 80 a8 30 0e 18 b9 " + 
+		               Integer.toHexString(lStart) + " 80 65 40 90 01 e8 85 40 88 10 f2 86 41 c8 84 16 20 d9 e5 20 00 00 60";
 		byte[] dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 		{
 			newBlock[nbw] = dsl[i];
 			nbw++;
 		}
-			
-		int code2 = nbw + memBankStart;  //code to properly load dungeons from the one combined huffman tree (dungeon data offset accumulator)
-		hLoad = "a9 2b 85 40 a5 4b e9 80 a8 30 0e 18 b9 " + 
-		               Integer.toHexString(lStart) + " 80 65 40 90 01 e8 85 40 88 10 f2 86 41 c8 60";
-		dsl = strToBytes(hLoad);
-		for(int i = 0; i < dsl.length; i++)
-		{
-			newBlock[nbw] = dsl[i];
-			nbw++;
-		}
+		int postProcess = memBankStart + nbw - 4;
 		//dump the new block
 		for(int i = 0; i < newBlock.length; i++)
 			romData[memBankStart + i] = newBlock[i];
@@ -1452,19 +1838,33 @@ class NESRom
 		//System.out.println("New block size = " + nsz);
 		
 		//System.out.println("Here you have 360 free bytes");
-		int memBankEnd = 163724;  //was 163528
+		int memBankEnd = 163528;
 		int code1 = 1 + memBankEnd;  //code to load stone room data into 06d1-06d9
 		String dStoneLoad = "c9 81 30 10 a8 f0 0d 88 a9 07 38 e5 0e aa 98 9d d1 06 a9 32 20 34 e6 60";
 		dsl = strToBytes(dStoneLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[code1 + i] = dsl[i];
 		
+		int code3 = code1 + dsl.length;  //method to copy stone room data from $06dx to $06d0 when loading floor
+		hLoad = "a8 bd d1 06 8d d0 06 98 20 39 95 60";
+		dsl = strToBytes(hLoad);
+		for(int i = 0; i < dsl.length; i++)
+		{
+			romData[code3 + i] = dsl[i];
+			nbw++;
+		}
 		
-		
-		int stair1 = code1 + dsl.length;
-		//System.out.println("code3 is " + dsl.length + " bytes");
+		//dungeon floor updater (sets the stone room 06d0 to the proper number according to the
+		//floor you enter
+		int code4 = code3 + dsl.length;
+		//String dStoneEnter = "20 ba e5 ae c1 06 bd d1 06 8d d0 06 60";  //old
+		String dStoneEnter = "ae c1 06 bd d1 06 8d d0 06 60";
+		dsl = strToBytes(dStoneEnter);
+		for(int i = 0; i < dsl.length; i++)
+			romData[code4 + i] = dsl[i];
 		
 		//put the deceit stair table here
+		int stair1 = code4 + dsl.length;
 		byte[] deceitStairs = newDs[0].floorTable;
 		for(int i = 0; i < deceitStairs.length; i++)
 			romData[stair1 + i] = deceitStairs[i];
@@ -1528,19 +1928,19 @@ class NESRom
 		String[] cdx = new String[2];
 		int hcode = 0;
 		
-		//add in a load dungeon selector and put it at 0x3ff88; it calls code2
+		//add in a load dungeon selector and put it at 0x3ff88; it calls code2; uses ff78-ff8b
 		String cd2 = Integer.toHexString(code2 - romPage + 32768);
 		cdx[0] = cd2.substring(0, 2);
 		cdx[1] = cd2.substring(2, 4);
-		hLoad = "20 "+ cdx[1] + " " + cdx[0];
+		hLoad = "4c "+ cdx[1] + " " + cdx[0];
 		hcode = 262024;
-		hLoad = "a5 4b c9 80 30 0a c9 88 10 06 " + hLoad + " 84 16 60 20 a3 e5 60";
+		hLoad = "a5 4b c9 80 30 07 c9 88 10 03 " + hLoad + " 20 a3 e5 60";
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
 		int l1 = dsl.length;
 		
-		//point line E5D6 (3e5e6) to call dungeon selector
+		//point line E5D6 (3e5e6) to call dungeon selector at ff78
 		int romPage2 = 245776;
 		String cddl = Integer.toHexString(hcode - romPage2 + 49152);  //should be "ff78"
 		cdx[0] = cddl.substring(0, 2);
@@ -1551,16 +1951,9 @@ class NESRom
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
 		
-		//dungeon floor updater (calls E5BA the dungeon loader, call this after that's done
+		//put dungeon selector2 after dungeon selector1 to call code1; uses ff8c-ffa0
 		hcode = 262024;
-		int code4 = hcode + l1;
-		String dStoneEnter = "20 ba e5 ae c1 06 bd d1 06 8d d0 06 60";
-		dsl = strToBytes(dStoneEnter);
-		for(int i = 0; i < dsl.length; i++)
-			romData[code4 + i] = dsl[i];
-		
-		//put dungeon selector2 after dungeon selector1 to call code1
-		int code5 = code4 + dsl.length;
+		int code5 = hcode + l1;
 		String cd1 = Integer.toHexString(code1 - romPage + 32768);
 		cdx[0] = cd1.substring(0, 2);
 		cdx[1] = cd1.substring(2, 4);
@@ -1569,6 +1962,18 @@ class NESRom
 		dsl = strToBytes(dungTest2);
 		for(int i = 0; i < dsl.length; i++)
 			romData[code5 + i] = dsl[i];
+		
+		//put in dungeon load selector at ffc3 to call code4
+		/*hcode = 262099;
+		int code6 = hcode;
+		String cd4 = Integer.toHexString(code4 - romPage + 32768);
+		cdx[0] = cd4.substring(0, 2);
+		cdx[1] = cd4.substring(2, 4);
+		String dungTest3 = "a5 4c c9 09 d0 04 20 " + cdx[1] + " " + cdx[0] + " 60 20 bc e6 60";
+		dsl = strToBytes(dungTest3);
+		for(int i = 0; i < dsl.length; i++)
+			romData[code6 + i] = dsl[i];*/
+		
 		
 		//point line E600 (3e610) to call dungeon selector 2
 		cd1 = Integer.toHexString(code5 - romPage2 + 49152);
@@ -1580,12 +1985,13 @@ class NESRom
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
 		
-		//point line C14B (3c15b) to call code4
-		cd1 = Integer.toHexString(code4 - romPage2 + 49152);
+		//point line "Post process" in code2 to call code4
+		//code4 % 16384 + 32752
+		cd1 = Integer.toHexString(code4 % 16384 + 32752);   
 		cdx[0] = cd1.substring(0, 2);
 		cdx[1] = cd1.substring(2, 4);
 		hLoad = "20 "+ cdx[1] + " " + cdx[0];
-		hcode = 246107;
+		hcode = postProcess;
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
@@ -1693,6 +2099,7 @@ class NESRom
 			newDs[i].testStairTable();
 		}
 		*/
+		return postProcess;
 	}
 	
 	HashMap<Integer,String> inventoryList;
@@ -1729,7 +2136,7 @@ class NESRom
 		String rtnVal = "";
 		for(int i = 0; i < in.length; i++)
 		{
-			String ss = Integer.toHexString(in[i]).toUpperCase();
+			String ss = Integer.toHexString(in[i]);
 			if(ss.length() == 1)
 				ss = "0" + ss;
 			ss = ss.substring(ss.length() - 2, ss.length());
@@ -3601,10 +4008,83 @@ class TextFinder
 	
 	public String replaceSpokenText(int start, int end, String toReplace, int align)
 	{
+		decodeSpokenText(start - 5, end - start + 5, align, rom.romData);
+		System.out.println("");
 		byte[] s1 = encodeSpokenText(start, toReplace, align);
 		for(int i = 0; i < s1.length; i++)
 			rom.romData[start + i] = s1[i];
-		return decodeSpokenText(start, end - start, align, rom.romData);
+		String rv = decodeSpokenText(start - 5, end - start + 5, align, rom.romData);
+		System.out.println("");
+		return rv;
+	}
+	
+	public byte[] decompressSpokenBytesAt(int a)
+	{
+		int len = rom.romData[a];
+		byte[] rv = new byte[len];
+		a++;
+		int bits = 5;
+		int shift = 7;
+		byte val = 0;
+		int k = 0;
+		while(k < len)
+		{
+			val <<= 1;
+			val |= ((rom.romData[a] >> shift) & 1);
+			shift--;
+			if(shift == -1)
+			{
+				a++;
+				shift = 7;
+			}
+			bits--;
+			if(bits == -1)
+			{
+				rv[k] = val;
+				val = 0;
+				k++;
+				bits = 5;
+			}
+		}
+		return rv;
+	}
+	
+	public byte[] compressSpokenBytes(byte[] a)
+	{
+		int bshift = 5;
+		int bleft = 7;
+		byte b = 0;
+		ArrayList<Byte> out = new ArrayList<Byte>();
+		int i = 0;
+		while(true)
+		{
+			b <<= 1;
+			b |= ((a[i] >> bshift) & 1);
+			bshift--;
+			if(bshift == -1)
+			{
+				bshift = 5;
+				i++;
+				if(i >= a.length)
+					break;
+			}
+			bleft--;
+			if(bleft == -1)
+			{
+				bleft = 7;
+				out.add(b);
+				b = 0;
+			}
+		}
+		if(bleft != 7)
+		{
+			b <<= bleft;
+			out.add(b);
+		}
+		byte[] rv = new byte[out.size()];
+		for(int j = 0; j < rv.length; j++)
+			rv[j] = out.get(j);
+		return rv;
 	}
 	
 	private void bitCompare(byte[] a, byte[] b, int align)
@@ -3660,14 +4140,16 @@ class TextFinder
 		String rv = "";
 		int bitsLeft = 7;
 		byte src = rom.romData[dataLoc];
-		int a = src;
+		int a = src & 255;
 		byte[] oth = rom.strToBytes("00 00 be bf c3 d0 c6 c7 c8 c9 ca 00 00 be bf c1 c2 7f fe 3d 90 8a 20");
 		int[] res;
 		for(int i = 0; i < align; i++)
 		{
-			//src <<= 1;
+			a <<= 1;
 			bitsLeft--;
 		}
+		if(bitsLeft < 7)
+			a >>= 8;
 		boolean lcase = false;
 		boolean numLoc = false;
 		int ctrl = 0;
@@ -3826,7 +4308,7 @@ class TextFinder
 		for(int i = 0; i < 6; i++)
 		{
 			a <<= 1;
-			a |= ((bb >> 7) & 255);
+			a |= ((bb >> 7) & 1);
 			bb <<= 1;
 			writeBit--;
 			if(writeBit < 0)
@@ -3913,7 +4395,7 @@ class TextFinder
 				rv += convertByte(val);
 			}
 		}
-		System.out.println();
+		//System.out.println();
 		return rv;
 	}
 	
@@ -6246,26 +6728,50 @@ class Map
 	public void setSeaPad(int amt)
 	{
 		seaPad = amt;
-		for(int i = 0; i < seaPad; i++)
+		int noise = 4;
+		int r = 0;
+		for(int j = 0; j < 256; j++)
 		{
-			for(int j = 0; j < 256; j++)
+			r = (int) (UltimaRando.rand() * 8);
+			if(r < noise)
+				noise--;
+			if(r > noise)
+				noise++;
+			for(int i = 0; i < seaPad + noise - 4; i++)
 				mapData[(i << 8) + j] = 1;
 		}
 		//System.out.println();
-		for(int i = 256 - seaPad; i < 256; i++)
+		noise = 4;
+		for(int j = 0; j < 256; j++)
 		{
-			for(int j = 0; j < 256; j++)
+			r = (int) (UltimaRando.rand() * 8);
+			if(r < noise)
+				noise--;
+			if(r > noise)
+				noise++;
+			for(int i = 256 - seaPad - noise + 4; i < 256; i++)
 				mapData[(i << 8) + j] = 1;
 		}
 		//System.out.println();
-		for(int i = seaPad; i < 256 - seaPad; i++)
+		int noise2 = 4;
+		for(int i = seaPad - 4; i < 256 - seaPad + 4; i++)
 		{
-			for(int j = 0; j < seaPad; j++)
+			r = (int) (UltimaRando.rand() * 8);
+			if(r < noise)
+				noise--;
+			if(r > noise)
+				noise++;
+			for(int j = 0; j < seaPad + noise - 4; j++)
 				mapData[(i << 8) + j] = 1;
-			for(int j = 256 - seaPad; j < 256; j++)
+			r = (int) (UltimaRando.rand() * 8);
+			if(r < noise2)
+				noise2--;
+			if(r > noise2)
+				noise2++;
+			for(int j = 256 - seaPad - noise2 + 4; j < 256; j++)
 				mapData[(i << 8) + j] = 1;
 		}
-		//System.out.println();
+		//MapWindow mwn = new MapWindow(mapData, false);
 	}
 	
 	public void setRandParams()
@@ -6367,7 +6873,17 @@ class Map
 					visibilityFill(new Point(x, y));
 			}
 		}
-		System.out.println("vis2;");
+		System.out.print("vis2;");
+		int fixed = 0;
+		for(int y = 0; y < 256; y++)
+		{
+			for(int x = 0; x < 256; x++)
+			{
+				if(visibility[x + 256 * y] > 1)
+					fixed += visibilityFix(x, y);
+			}
+		}
+		System.out.println("vf" + fixed + ";");
 		/*MapWindow mwr = new MapWindow(mapData, false);
 		mwr.setAccessData(accessData);
 		mwr.setVisibilityData(visibility);*/
@@ -6375,6 +6891,23 @@ class Map
 			testVBranch(vbranches.get(i), false);
 	}
 	
+	private int visibilityFix(int x, int y) //ensures that all edge mountains and forests are visible from zone 0
+	{
+		ArrayList<Point> s4 = getSurrPoints(new Point(x, y));
+		for(int i = 0; i < s4.size(); i++)
+		{
+			Point p = s4.get(i);
+			int loc = p.x + 256 * p.y;
+			if(visibility[loc] == 1 && mapData[loc] != 12 && mapData[loc] != 13)
+			{
+				visibility[x + 256 * y] = 1;
+				return 1;
+			}
+		}
+		return 0;
+	}
+
+
 	private int[] testVBranch(Point p, boolean distOnly)
 	{
 		if(visibility[p.x + 256 * p.y] == 1 || distOnly)
@@ -10818,10 +11351,10 @@ class RandoWindow extends JFrame implements ActionListener
 			saveConfig();
 			rt = null;
 			//System.out.println(nr.getFinalSearchLocData());
-			/*System.out.println(nr.getODLocations());
+			System.out.println(nr.getODLocations());
 			MapWindow mw = new MapWindow(UltimaRando.combineMap(nr.getPotMap()), true);
 			mw.setPOIList(nr.getPOIList());
-			mw.setMoongates(nr.getMoongates());*/
+			mw.setMoongates(nr.getMoongates());
 			//System.out.println(nr.getInitCharData());
 			JOptionPane.showMessageDialog(RandoWindow.this, outFile + "\nhas been successfully generated.", "Done", JOptionPane.INFORMATION_MESSAGE);
 		}
@@ -11003,15 +11536,28 @@ class RandoWindow extends JFrame implements ActionListener
 			flM[i] = "M" + i;
 		}
 		opts.add(new FlagPanel("Randomize overworld map", optM, flM, false, false, this));
+		String[] opt = {"Randomize Dungeon Layouts", 
+				 "Randomize Moongate Destinations", "Put Balloon next to Castle Britannia",
+				 "Randomize spells learned by Spell Teaching Villagers", 
+				 "Randomize Enemy Abilities", "Modify the View spell"};
+		String[] fl = {"D", "O", "B", "T", "A", "W"};
+		opts.add(new FlagPanel("General", opt, fl, true, false, this));
+		String[] shopt = {"Shuffle Shop Locations", "Enforce Shop Non-Compete", "Preserve Shop Types"};
+		String[] shfl = {"P0", "P1", "P2"};
+		opts.add(new FlagPanel("Randomize Shop Locations", shopt, shfl, false, false, this));
+		String[] abyssM = new String[8];
+		String[] abyssF = new String[8];
+		for(int i = 1; i < 9; i++)
+		{
+			abyssM[i - 1] = "Start the Abyss at Floor " + i;
+			abyssF[i - 1] = "Y" + i;
+		}
+		opts.add(new FlagPanel("Shorten Abyss", abyssM, abyssF, false, false, this));
+		
 		String[] op2 = {"Randomize Items at Search Locations", "Exclude the Fungus and Manroot search spots (recommended)",
 				"Include Avatar Equipment in shuffle", "Switch Avatar Equipment with a random Sword and Armor"};
 		String[] fla2 = {"R0", "R1", "R2", "R4"};
 		opts.add(new FlagPanel("Randomize Search Spot Items", op2, fla2, true, true, this));
-		String[] opt = {"Randomize Dungeon Layouts", 
-				 "Randomize Moongate Destinations", "Put Balloon next to Castle Britannia",
-				 "Randomize spells learned by Spell Teaching Villagers", "Randomize Enemy Abilities"};
-		String[] fl = {"D", "O", "B", "T", "A"};
-		opts.add(new FlagPanel("General", opt, fl, true, false, this));
 		String[] optE = {"Make an additional 25% of enemies tough", "Make an additional 50% of enemies tough",
 				         "Make all dungeon enemies tough"};
 		String[] fle = {"E1", "E2", "E4"};
@@ -11027,15 +11573,16 @@ class RandoWindow extends JFrame implements ActionListener
 		String[] opt2 = {"0 Gold", "0-400 Gold", "0-1000 Gold"};
 		String[] fl2 = {"G0", "G1", "G2"};
 		opts.add(new FlagPanel("Gold", opt2, fl2, false, false, this));
+		String[] op5 = {"Shuffle", "Random"};
+		String[] fl5 = {"I1", "I2"};
+		opts.add(new FlagPanel("Starting Items", op5, fl5, false, false, this));
 		String[] op3 = {"0 Virtue", "Random Virtue", "Worthy of Avatarhood", "Start as Avatar"};
 		String[] fl3 = {"V0", "V1", "V2", "V3"};
 		opts.add(new FlagPanel("Virtue", op3, fl3, false, false, this));
 		String[] op4 = {"Shuffle", "Random"};
 		String[] fl4 = {"Q1", "Q2"};
 		opts.add(new FlagPanel("Equippable Items", op4, fl4, false, false, this));
-		String[] op5 = {"Shuffle", "Random"};
-		String[] fl5 = {"I1", "I2"};
-		opts.add(new FlagPanel("Starting Items", op5, fl5, false, false, this));
+		
 		String[] op6 = {"Shuffle Amounts", "Random 0-9"};
 		String[] fl6 = {"H1", "H2"};
 		opts.add(new FlagPanel("Starting Herbs", op6, fl6, false, false, this));
@@ -11048,22 +11595,39 @@ class RandoWindow extends JFrame implements ActionListener
 		}
 		
 		JPanel general = new JPanel();
-		general.setLayout(new GridLayout(1, 2));
+		general.setLayout(new GridLayout(2, 2));
+		general.add(opts.get(0));
+		
+		JPanel gen0 = new JPanel(new BorderLayout());
+		gen0.add(opts.get(1), BorderLayout.CENTER);
+		gen0.add(opts.get(2), BorderLayout.SOUTH);
+		general.add(gen0);
+		
+		general.add(opts.get(3));
 		JPanel gen1 = new JPanel();
 		gen1.setLayout(new GridLayout(2, 1));
-		for(int i = 0; i < 2; i++)
+		for(int i = 4; i < 6; i++)
 			gen1.add(opts.get(i));
-		JPanel gen2 = new JPanel();
-		gen2.setLayout(new GridLayout(3, 1));
+		/*JPanel gen2 = new JPanel();
+		gen2.setLayout(new GridLayout(2, 1));
 		for(int i = 2; i < 5; i++)
-			gen2.add(opts.get(i));
+			gen2.add(opts.get(i));*/
 		general.add(gen1);
-		general.add(gen2);
+		//general.add(gen2);
 		
 		JPanel character = new JPanel();
-		character.setLayout(new GridLayout(3, 2));
-		for(int i = 5; i < opts.size(); i++)
-			character.add(opts.get(i));
+		character.setLayout(new GridLayout(1, 2));
+		JPanel char1 = new JPanel(new GridLayout(2, 1));
+		char1.add(opts.get(6));
+		JPanel char1B = new JPanel(new GridLayout(2, 1));
+		char1B.add(opts.get(7));
+		char1B.add(opts.get(8));
+		char1.add(char1B);
+		JPanel char2 = new JPanel(new GridLayout(4, 1));
+		for(int i = 9; i < opts.size(); i++)
+			char2.add(opts.get(i));
+		character.add(char1);
+		character.add(char2);
 		
 		JPanel faq = new JPanel();
 		JTextArea jta = new JTextArea(loadFAQ());
@@ -11335,6 +11899,103 @@ public class UltimaRando
 			randomizeDungeons(rom);
 			if(k % 100 == 0)
 				System.out.print("T");
+		}
+	}
+	
+	public static void testShopSwaps()
+	{
+		try
+		{
+			int as = 65187;
+			int failures = 0;
+			for(int k = 1; k < 100001; k++)
+			{
+				NESRom nr = new NESRom("C:\\Users\\AaronX\\Desktop\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
+				boolean ff = false;
+				if(k % 100 == 0)
+					System.out.print("T");
+				if(k % 10000 == 0)
+					System.out.println("");
+				nr.randomize("P1", null);
+				String a = nr.listShops(as);
+				ArrayList<Integer> shops = new ArrayList<Integer>();
+				String[] aa = a.split("\n");
+				for(int i = 0; i < aa.length; i++)
+				{
+					shops.clear();
+					String[] ab = aa[i].split(" ");
+					for(int j = 0; j < ab.length; j++)
+					{
+						try
+						{
+							int xx = Integer.parseInt(ab[j]);
+							if(shops.contains(xx))
+							{
+								System.out.println("Duplicate shop type in " + ab[0] + "\n--------\n" + a);
+								ff = true;
+							}
+							else
+								shops.add(xx);
+						}
+						catch(Exception ex){}	
+					}
+				}
+				if(ff)
+					failures++;
+			}
+			System.out.println("100000 tests run with " + failures + " failures");
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace(System.err);
+			return;
+		}
+	}
+	
+	public static void testShopType()
+	{
+		try
+		{
+			int as = 65187;
+			int failures = 0;
+			for(int k = 1; k < 100001; k++)
+			{
+				NESRom nr = new NESRom("C:\\Users\\AaronX\\Desktop\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
+				boolean ff = false;
+				if(k % 100 == 0)
+					System.out.print("T");
+				if(k % 10000 == 0)
+					System.out.println("");
+				nr.randomize("P2", null);
+				String a = nr.listShops(as);
+				ArrayList<Integer> shops = new ArrayList<Integer>();
+				String[] aa = a.split("\n");
+				for(int i = 0; i < aa.length; i++)
+				{
+					String[] ab = aa[i].split(" ");
+					for(int j = 0; j < ab.length; j++)
+					{
+						try
+						{
+							int xx = Integer.parseInt(ab[j]);
+							shops.add(xx);
+						}
+						catch(Exception ex){}	
+					}
+				}
+				int[] shopTypes = {0, 0, 0, 2, 0, 1, 2, 3, 1, 2, 1, 2, 1, 1, 2, 1, 3};
+				for(int i = 0; i < shopTypes.length; i++)
+					if(shops.get(i) != shopTypes[i])
+						ff = true;
+				if(ff)
+					failures++;
+			}
+			System.out.println("100000 tests run with " + failures + " failures");
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace(System.err);
+			return;
 		}
 	}
 	
@@ -11670,15 +12331,22 @@ public class UltimaRando
 			System.out.println(nr.getODLocations());
 			MapWindow mw = new MapWindow(UltimaRando.combineMap(nr.getPotMap()), true);
 			
-			mw.setPOIList(nr.getPOIList());
-		}
+			mw.setPOIList(nr.getPOIList());*/
+		/*}
 		catch(Exception ex)
 		{
 			return;
-		}*/
+		}
 		//testDungeonMake(nr);
-		/*TextFinder tf = new TextFinder(nr);
-		for(int i = 2; i < 3; i++)
+		TextFinder tf = new TextFinder(nr);
+		byte[] x1 = tf.decompressSpokenBytesAt(11257);
+		System.out.println("Sextant 1:" + Arrays.toString(x1));
+		byte[] xx = tf.decompressSpokenBytesAt(13008);
+		System.out.println("Sextant 2:" + Arrays.toString(xx));
+		byte[] h2 = tf.decompressSpokenBytesAt(8401);
+		System.out.println("Heal 2:" + Arrays.toString(h2));*/
+		
+		/*for(int i = 2; i < 3; i++)
 		{
 			String s = i + "x:";
 			s += tf.decodeSpokenText(93248, 40, i, nr.romData);  //ac30, 0x16c40
@@ -11906,7 +12574,8 @@ public class UltimaRando
 		s += "\nShrine of Humility:\n";
 		s += nr.getInitShrineHumilData();
 		System.out.println(s);*/
-		
+		//testShopSwaps();
+		//testShopType();
 		RandoWindow rw = new RandoWindow();
 		
 	}
