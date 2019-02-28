@@ -4,6 +4,14 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.3:
+- You can now shorten the Abyss
+- You can now randomize where shops are found
+- You can now take advantage of a modified View spell, which lists the number of chests and stones on each floor of the dungeon you are currently in
+- Fixed the Basil and Calumney text bugs
+- Dungeon stair exits now work, and I can no longer reproduce the Negate bug
+- Improved map generation significantly reduces invisible mountains and makes the map a little less square
+
 New in ver 1.2:
 - You can set the balloon to be next to Castle Britannia (instead of outside Hythloth)
 - Calumney of Yew gives the proper location for Manroot and Basil of Moonglow gives you the proper location for Fungus
@@ -22,9 +30,6 @@ New in ver 1.1:
 - There is a known UI inconsistency where the flag order in the UI and the flag order in the generated ROM will be different.  This may be fixed in a future version.
 
 Known bugs and issues:
-- The negate spell doesn't always wear off after battles (it will wear off if you enter a new battle)
-- The stairs in dungeon stone rooms do not work (you will need to step outside and cast exit)
-- Basil's text doesn't stop after the second phrase and Calumney's text has a minor graphical artifact
 - The overworld map doesn't always open up your vision to beyond a 3x3 area after exiting a forest or exiting a battle on a forest next to an open area
 
 Note: Some interest was expressed in the source code for this Rando.  I have uploaded the lastest java file.  I use launch4j to build the downloadable Windows executable; feel free to look at/play with/suggest bug fixes.
