@@ -9,7 +9,7 @@ New in ver 1.3:
 - You can now randomize where shops are found
 - You can now take advantage of a modified View spell, which lists the number of chests and stones on each floor of the dungeon you are currently in
 - Fixed the Basil and Calumney text bugs
-- Dungeon stair exits now work, and I can no longer reproduce the Negate bug
+- Stone room stair exits now work, and I can no longer reproduce the Negate bug
 - Improved map generation significantly reduces invisible mountains and makes the map a little less square
 
 New in ver 1.2:
