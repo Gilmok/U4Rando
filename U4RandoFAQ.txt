@@ -40,14 +40,14 @@ Note: Enemy HP, attack, and exp are capped at 255 while defense is capped at 192
 
 R#: Randomize items in search locations.  The # in this flag is treated as a bit field.  The values are interpreted as follows:
 0:  Randomize items in search locations, not including the Avatar only chests in Lyceaum and Empath Abbey.
-1:  Also exlude the Fungus and Manroot search spots on the map.  (This is recommended because at this time the villagers do not properly tell you where these spots are).
+1:  Also exlude the Fungus and Manroot search spots on the map.  (This option is still recommended as you are required to go through a lengthy clue chain to get either location, and you need the sextant to actually find them).
 2:  Include the Sword of Paradise and Exotic Armor in search spots.  If this flag is set, any Rune is excluded from being placed in the Lyceaum and Empath Abbey Avatar-only search spots.
 4:  Switch the Sword of Paradise and Exotic Armor for a random sword and armor, respectively.
 Note: This flag also eliminates the new moons check on the new moons search spot (that contains the black stone of Humility) as that check was tied to the item itself rather than the search spot; you can therefore check the new moons moongate search spot at anytime and get the item
 
 C#:  Boost values of gold chests.  Adds 25 times # to each gold chest you open, up to a maximum of adding 150 gold.
 
-V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=set all virtues to 99.  3=start off as the avatar.  Use V2 to avoid all that virtue grinding.
+V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=set all virtues to 99.  3=start off as the avatar.  Use V2 or v3 to avoid all that virtue grinding.
 
 G#: Randomize initial gold.  The # means the following: 0=set initial gold to 0, 1=set it to a random number between 0 and 400, 2=set it to a random number between 0 and 1000.
 
