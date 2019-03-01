@@ -11351,10 +11351,10 @@ class RandoWindow extends JFrame implements ActionListener
 			saveConfig();
 			rt = null;
 			//System.out.println(nr.getFinalSearchLocData());
-			System.out.println(nr.getODLocations());
+			/*System.out.println(nr.getODLocations());
 			MapWindow mw = new MapWindow(UltimaRando.combineMap(nr.getPotMap()), true);
 			mw.setPOIList(nr.getPOIList());
-			mw.setMoongates(nr.getMoongates());
+			mw.setMoongates(nr.getMoongates());*/
 			//System.out.println(nr.getInitCharData());
 			JOptionPane.showMessageDialog(RandoWindow.this, outFile + "\nhas been successfully generated.", "Done", JOptionPane.INFORMATION_MESSAGE);
 		}
