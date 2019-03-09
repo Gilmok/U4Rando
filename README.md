@@ -7,6 +7,7 @@ See the FAQ for usage.
 New in ver 1.31:
 - The source of the Neagate bug has been found and eliminated
 - The source of the forest walk bug has been found and eliminated
+- You can now randomize all of your virtues to distinct, random values (rather than have all of them at the same value)
 - Updated UI suggests Beginner, Intermediate, Advanced, and Finalist flags (much like Zelda 2 randomizer)
 
 New in ver 1.3:
