@@ -5,9 +5,22 @@ Dragon Warrior randomizer is one of the most fun and popular randomizers out rig
 
 
 
+II.  Recommended Tournament settings
+Ultima 4 Randomizer has the ability to create various levels of difficulty for tournament players.  For all levels of difficulty, it is recommended to set DOBTAWP0R3C6V4I2.  This randomizes the dungeons, moongate orders, spell teachers, enemy AIs, shop locations, items at search spots (including the avatar sword and armor), and starting items.  It also starts you off as the Avatar and adds 150 gold to each chest with gold.  For the following difficulty levels, also set the following flags:
+
+Beginner: Also set the Y8 flag to shorten the Abyss.  Estimated completion time: 1h30m-2h.
+
+Intermediate:  Also set the E5 flag for tougher enemies.  Estimated completion time: 2h30m-4h.
+
+Advanced:  Also set the M9 flag for a randomized overworld map, and change to Y6 and E7.  Estimated completion time: 4h-6h.
+
+Finalist: Omit the V4, Y6, and B flags, forcing you to attain Avatarhood yourself.  Estimated completion time: 5h30m-8h.
+
+Feel free to also experiment with Abyss lengths, the R flag, the P flag, the Q flag, the G flag, the H flag, and the S flag.  It is not recommended to mix S and E flags.
 
 
-II. Features and Usage
+
+III. Features and Usage
 This is a Java application that requires having a copy of the NES Ultima 4 ROM.  If you use the UI it will list the flags that the randomizer will use as you select options.  A # following the flag means that the flag can be followed up with more options (the default is 1).  The following flags determine what to randomize and feature:
 
 M#:  Randomize overworld map.  Begins with a sea border equal to 5 times # on each side of the map, effectively shrinking the map.  (For reference, the original map had a sea border of around 10 tiles on each side). See the map generation notes for more information.
@@ -47,9 +60,9 @@ Note: This flag also eliminates the new moons check on the new moons search spot
 
 C#:  Boost values of gold chests.  Adds 25 times # to each gold chest you open, up to a maximum of adding 150 gold.
 
-V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=set all virtues to 99.  3=start off as the avatar.  Use V2 or v3 to avoid all that virtue grinding.
+V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=Randomize all virtue values, 3=set all virtues to 99.  4=start off as the avatar.  Use V3 or v4 to avoid all that virtue grinding.
 
-G#: Randomize initial gold.  The # means the following: 0=set initial gold to 0, 1=set it to a random number between 0 and 400, 2=set it to a random number between 0 and 1000.
+G#: Randomize initial gold.  The # means the following: 0=set initial gold to 0, 1=set it to a random number between 0 and 400, 2=set it to a random number between 0 and 1000.  In ver. 1.31 this also sets how much gold you get upon dying.
 
 Q#:  Randomize equippable weapons and armor for each character.  Each piece of equipment has an 8-bit value designating who can use that piece of equipment.  The # means the following: 1=Shuffle the character(s) who can use the equipment (shift any 1s to a random value; for example the Robe can only be used by the Shepherd and setting this flag makes the Robe usable by exactly one random class).  2=Pure randomization of this number (it is possible for any equipment to be used by any combination of characters).
 
@@ -66,13 +79,13 @@ S#:  Randomize initial starting spells.  This is treated as a bit field with the
 
 
 
-III.  Notes on map generation
+IV.  Notes on map generation
 I didn't know what to put here so I decided to simply describe the map generation algorithm at the end.  Just note that the algorithm is slightly biased toward placing things on the sea, as a lot of things are reqired to be there, and that the game uses visibility zones to control what is visible as you traverse the map.  The abyss is always on a crater, and the map has a maximum of three accessible craters to check. Currently, no attempt is made to place shrines and dungeons closest to their corresponding virtue towns, so anything can be anywhere.  Also, I have not yet changed using visibility zone 2 for forests, which I have noticed can cause problems when restoring visibility.
 
 
 
 
-IV.  Future Development
+V.  Future Development
 The following flags are things that I would like to implement, and are an open discussion to see what changes could be made to the game for a more engaging experience.
 Also, the current version doesn't change the closing credits in any way to acknowledge that roms are generated via a randomizer.  Furthermore, I am not sure about how gems and the Telesope work on the overworld map (but they should work fine in dungeons).
 Realistically, this version (1.3) will be the difinitive version for a while.  I need to spend my time on other things and time developing this will drop a lot (unless major bugs are found).
