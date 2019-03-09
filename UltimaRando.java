@@ -14,6 +14,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.geom.Line2D;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
@@ -29,6 +30,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Random;
@@ -56,12 +58,14 @@ class NESRom
 {
 	byte[] romData;
 	String filename;
+	private boolean mapSwap;
 	
 	NESRom(String fn) throws Exception
 	{
 		filename = fn;
 		romData = loadData(fn);
 		setupInventoryList();
+		mapSwap = false;
 	}
 	
 	public byte[] loadData(String fname) throws Exception
@@ -123,6 +127,7 @@ class NESRom
 	{
 		OpeningScreen os = new OpeningScreen(this);
 		os.replaceOpenScreen(this);
+		fixNegate();
 		UltCharacter ch = new UltCharacter();
 		boolean randomizeMap = false;
 		boolean randomizeMoongates = false;
@@ -223,10 +228,12 @@ class NESRom
 				changeChestGold(val);
 				break;
 			case 'V':
-				if(val <= 2)
+				if(val <= 3)
 					changeVirtues(ch.getRandomVirtue(val));
 				else
 					grantAvatarhoodAtStart();
+				if(val == 2)
+					grantRandomVirtue();
 				break;
 			case 'Q':
 				changeEquippableEquipment(ch.getRandomEquippables(val, this.getInitEquippables()));
@@ -267,7 +274,7 @@ class NESRom
 		{
 			Map m = new Map(256, 256);
 			m.setSeaPad(mapPad);
-			m.makeRandomMap();
+			m.makeRandomMap(mapSwap);
 			byte[] fm = m.generateFinalMap();
 			changeStartLocs(m.getNewStartingLocs());
 			changeOutsideSearchLocs(m.getOutsideSearchSpots());
@@ -280,6 +287,7 @@ class NESRom
 			if(britBalloon)
 				changeBalloonToBritannia(m.getBritBalloon());
 			changeMap(fm);
+			mapSwap = !mapSwap;
 			/*MapWindow mw = new MapWindow(fm, true);
 			mw.setPOIList(m.getPOIList());
 			System.out.println(this.getODLocations());
@@ -885,15 +893,20 @@ class NESRom
 	{
 		byte g1 = (byte) (newVal & 255);
 		byte g2 = (byte) (newVal >> 8);
-		romData[218449] = g1;
+		romData[218449] = g1;  //initial gold
 		romData[218454] = g2;
+		romData[218823] = g1;  //gold upon death
+		romData[218828] = g2;
 	}
 	
 	public void changeChestGold(int newVal) //uses ffa9-ffb3
 	{
+		if(newVal <= 0)
+			return;
 		if(newVal <= 6)
 			newVal *= 25;
-		String ff = "69 " + Integer.toHexString(newVal) + " e8 e8 9d 01 01 6d 27 68 60";
+		String nvs = Integer.toHexString(newVal);
+		String ff = "69 " + nvs + " e8 e8 9d 01 01 6d 27 68 60";
 		//String f2 = "ac 15 68 a9 63 99 90 68 99 98 68 20 d2 cc 60";
 		byte[] fcb = strToBytes(ff);
 		int ff1 = 262073;
@@ -909,6 +922,22 @@ class NESRom
 	public void changeVirtues(int newVal)
 	{
 		romData[218482] = (byte) newVal;
+	}
+	
+	public void fixNegate()  //clears out the negate spell upon death; this is a bug in the original game
+	{
+		//put negate fix at D:BF00
+		String f2 = "a9 00 85 7d 20 16 f5 60";
+		byte[] fcb = strToBytes(f2);
+		int ff1 = 229136;
+		for(int i = 0; i < fcb.length; i++)
+			romData[ff1 + i] = fcb[i];
+		//point D:9683 to call BF00
+		f2 = "20 00 bf";
+		fcb = strToBytes(f2);
+		ff1 = 218771;
+		for(int i = 0; i < fcb.length; i++)
+			romData[ff1 + i] = fcb[i];
 	}
 	
 	public void grantAvatarhoodAtStart()
@@ -930,13 +959,33 @@ class NESRom
 		int ff1 = 229370;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];*/
-		//put avatar loader in D:3f04
+		//put avatar loader in D:3f08
 		String f2 = "a9 ff 8d 14 68 ac 15 68 a9 63 99 90 68 99 98 68 4c 42 c2";
 		byte[] fcb = strToBytes(f2);
-		int ff1 = 229140;
+		int ff1 = 229144;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
-		String fcall2 = "4c 04 bf";
+		String fcall2 = "4c 08 bf";
+		fcb = strToBytes(fcall2);
+		ff1 = 221785;
+		for(int i = 0; i < fcb.length; i++)
+			romData[ff1 + i] = fcb[i];
+	}
+	
+	public void grantRandomVirtue()
+	{
+		int ff1 = 229144;
+		for(int i = 0; i < 8; i++)
+		{
+			int ra = (int) (UltimaRando.rand() * 100);
+			romData[ff1 + i] = (byte) ra;
+		}
+		String f2 = "a0 07 b9 08 bf 99 0c 68 88 10 f7 4c 42 c2";
+		byte[] fcb = strToBytes(f2);
+		ff1 = 229152;
+		for(int i = 0; i < fcb.length; i++)
+			romData[ff1 + i] = fcb[i];
+		String fcall2 = "4c 10 bf";
 		fcb = strToBytes(fcall2);
 		ff1 = 221785;
 		for(int i = 0; i < fcb.length; i++)
@@ -4622,7 +4671,7 @@ class UltCharacter
 		{
 		case 0:  return (byte) 0;
 		case 1:  return (byte) (UltimaRando.rand() * 100);
-		case 2:  return (byte) 99;
+		case 3:  return (byte) 99;
 		default: return (byte) 50;
 		}
 	}
@@ -5402,6 +5451,7 @@ class Map
 			index = (byte) idx;
 			isUsed = false;
 			innerPOI = null;
+			
 		}
 		
 		public MapZone() 
@@ -6860,17 +6910,365 @@ class Map
 		return toLand;
 	}
 	
-	private void setupVisibility()
+	class VisibilityArea implements Comparable
+	{
+		ArrayList<Point> pts;
+		int vis;
+		Rectangle claimed;
+		boolean[] open;
+		boolean needsChange;
+		boolean smallHWrap;  //these have to do with zones that wrap around the edges of the map
+		boolean smallVWrap;
+		boolean largeHWrap;
+		boolean largeVWrap;
+		Rectangle small;
+		Map mapRef;
+		
+		VisibilityArea(ArrayList<Point> pl, int vz, Map mr)
+		{
+			pts = pl;
+			vis = vz;
+			mapRef = mr;
+			smallVWrap = false;
+			smallHWrap = false;
+			largeVWrap = false;
+			largeHWrap = false;
+			
+			calcSides();
+		}
+		
+		private void calcSides()
+		{
+			int minX = 999;
+			int maxX = 0;
+			int minY = 999;
+			int maxY = 0;
+			
+			for(int i = 0; i < pts.size(); i++)
+			{
+				Point p = pts.get(i);
+				if(p.x < minX) minX = p.x;
+				if(p.x > maxX) maxX = p.x;
+				if(p.y < minY) minY = p.y;
+				if(p.y > maxY) maxY = p.y;
+			}
+			
+			if(minX == 0 && maxX == 255)
+			{
+				minX = 255;
+				maxX = 0;
+				for(int i = 0; i < pts.size(); i++)
+				{
+					Point p = pts.get(i);	
+					if(p.x > 128 && p.x < minX) minX = p.x;
+					if(p.x < 128 && p.x > maxX) maxX = p.x;
+				}
+				maxX += minX;
+				smallHWrap = true;
+			}
+			
+			if(minY == 0 && maxY == 255)
+			{
+				minY = 255;
+				maxY = 0;
+				for(int i = 0; i < pts.size(); i++)
+				{
+					Point p = pts.get(i);	
+					if(p.y > 128 && p.y < minX) minX = p.y;
+					if(p.y < 128 && p.y > maxX) maxX = p.y;
+				}
+				maxY += minY;
+				smallVWrap = true;
+			}
+			
+			largeHWrap = smallHWrap;
+			largeVWrap = smallVWrap;
+			
+			int dx = maxX - minX + 1;
+			int dy = maxY - minY + 1;
+			Point[][] pa = new Point[dy][];
+			for(int i = 0; i < dy; i++)
+				pa[i] = new Point[dx];
+			
+			for(int i = 0; i < pts.size(); i++)
+			{
+				int xx = 0;
+				int yy = 0;
+				Point p = pts.get(i);
+				if(minX > p.x)
+					xx = p.x + 256 - minX;
+				else
+					xx = p.x - minX;
+				if(minY > p.y)
+					yy = p.y + 256 - minY;
+				else
+					yy = p.y - minY;
+				pa[yy][xx] = p;
+			}
+			
+			boolean[] sides = new boolean[4];  //true = open
+			//top test
+			int j = 0;
+			for(int i = 0; i < pa[0].length; i++)
+			{
+				j = 0;
+				while(pa[j][i] == null)
+					j++;
+				Point p = pa[j][i];
+				if(mapRef.getTerrain(p) != 13 && mapRef.getTerrain(p.x, p.y - 1) != 13)
+				{
+					sides[0] = true;
+					break;
+				}
+			}
+			
+			//bottom
+			for(int i = 0; i < pa[0].length; i++)
+			{
+				j = pa.length - 1;
+				while(pa[j][i] == null)
+					j--;
+				Point p = pa[j][i];
+				if(mapRef.getTerrain(p) != 13 && mapRef.getTerrain(p.x, p.y + 1) != 13)
+				{
+					sides[1] = true;
+					break;
+				}
+			}
+			
+			//left
+			for(int i = 0; i < pa.length; i++)
+			{
+				j = 0;
+				while(pa[i][j] == null)
+					j++;
+				Point p = pa[i][j];
+				if(mapRef.getTerrain(p) != 13 && mapRef.getTerrain(p.x - 1, p.y) != 13)
+				{
+					sides[2] = true;
+					break;
+				}
+			}
+			
+			//right
+			for(int i = 0; i < pa.length; i++)
+			{
+				j = pa[0].length - 1;
+				while(pa[i][j] == null)
+					j--;
+				Point p = pa[i][j];
+				if(mapRef.getTerrain(p) != 13 && mapRef.getTerrain(p.x + 1, p.y) != 13)
+				{
+					sides[3] = true;
+					break;
+				}
+			}
+			
+			//now that we know what is open, we can determine the claimed rectangle
+			//claimed = new Rectangle[9];
+			claimed = new Rectangle(minX, minY, dx, dy);
+			small = new Rectangle(minX, minY, dx, dy);
+			open = sides;
+			for(int i = 0; i < 4; i++)
+			{
+				if(!sides[i])
+				{
+					switch(i)
+					{
+					case 0:
+						claimed.y -= 16;
+						if(claimed.y < 0)
+						{
+							largeVWrap = true;
+							claimed.y += 256;
+						}
+						claimed.height += 16;
+						break;
+					case 1:
+						claimed.height += 16;
+						if(claimed.y + claimed.height >= 256)
+							largeVWrap = true;
+						break;
+					case 2:
+						claimed.x -= 16;
+						if(claimed.x < 0)
+						{
+							largeHWrap = true;
+							claimed.x += 256;
+						}
+						claimed.width += 16;
+						break;
+					case 3:
+						claimed.width += 16;
+						if(claimed.x + claimed.width >= 256)
+							largeHWrap = true;
+						break;
+					}
+				}
+			}
+		}
+		
+		public VisibilityArea combine(VisibilityArea oth)  
+		{
+			Rectangle r1 = new Rectangle(oth.small);
+			Rectangle r2 = new Rectangle(this.small);
+			if(oth.smallHWrap && !smallHWrap)
+				r2.x += 256;
+			if(oth.smallVWrap && !smallVWrap)
+				r2.y += 256;
+			int olap = mapRef.testRectOlap(r1, r2);
+			if(olap == 0)
+				return null;
+			ArrayList<Point> sm = pts;
+			ArrayList<Point> lg = oth.pts;
+			if(pts.size() > oth.pts.size())
+			{
+				sm = oth.pts;
+				lg = pts;
+			}
+			for(int i = 0; i < sm.size(); i++)
+			{
+				Point p = sm.get(i);
+				if(mapRef.mapData[p.x + 256 * p.y] == 13)
+					continue;
+				ArrayList<Point> pl = mapRef.getSurrPoints(p);
+				for(int j = 0; j < pl.size(); j++)
+				{
+					Point p2 = pl.get(j);
+					if(mapRef.mapData[p2.x + 256 * p2.y] == 13)
+						continue;
+					if(lg.contains(p2))
+					{
+						sm.addAll(lg);
+						return new VisibilityArea(sm, vis, mapRef);
+					}
+				}
+			}
+			return null;
+		}
+		
+		public boolean testAgainst(VisibilityArea oth)  //this tests if you should change against the other one
+		{
+			if(oth.vis != vis)
+				return false;
+			Rectangle r1 = new Rectangle(oth.small);
+			Rectangle r2 = new Rectangle(this.claimed);
+			if(oth.smallHWrap && !largeHWrap)
+				r2.x += 256;
+			if(oth.smallVWrap && !largeVWrap)
+				r2.y += 256;
+			int olap = mapRef.testRectOlap(r1, r2);
+			if(olap == 0)  //you did not overlap with big
+				return false;
+			Rectangle r3 = new Rectangle(this.small);
+			if(oth.smallHWrap && !largeHWrap)
+				r3.x += 256;
+			if(oth.smallVWrap && !largeVWrap)
+				r3.y += 256;
+			olap = mapRef.testRectOlap(r1, r3);
+			if(olap == 0)  //if you overlap with big but not small then definitely change
+			{
+				int nv = 2;
+				if(oth.vis == 2)
+					nv = 3;
+				oth.changeVis(nv);
+				return true;
+			}
+			else  //compare the area of "good overlap" vs area of "bad overlap"
+			{
+				Rectangle sInt = r1.intersection(r3);  //small-small or good overlap
+				Rectangle lInt = r1.intersection(r2);  //small-large or bad overlap
+				int a1 = sInt.height * sInt.width;
+				int a2 = lInt.height * lInt.width;
+				int a3 = a2 - a1;
+				//change if a3 > a1 (majority bad overlap)
+				if(a3 > a1)
+				{
+					int nv = 2;
+					if(oth.vis == 2)
+						nv = 3;
+					oth.changeVis(nv);
+					return true;
+				}
+				else if(sInt.width != lInt.width && sInt.height != lInt.height) //2 side bad overlap
+				{
+					int nv = 2;
+					if(oth.vis == 2)
+						nv = 3;
+					oth.changeVis(nv);
+					return true;
+				}
+				else
+					return false;
+			}
+			//top = 4,8,16,32; bottom = 1,2,64,128; left = 2,8,16,64; right = 1,4,32,128
+			/*int[] tests = {60, 195, 90, 165};
+			for(int i = 0; i < 4; i++)
+			{
+				if(open[i] == false)
+				{
+					if((tests[i] & olap) > 0)
+					{
+						//oth.needsChange = true;
+						int nv = 2;
+						if(oth.vis == 2)
+							nv = 3;
+						oth.changeVis(nv);
+						return true;
+					}
+				}
+			}
+			return false;*/
+		}
+		
+		public void changeVis(int newVis)
+		{
+			this.vis = newVis;
+			for(int i = 0; i < pts.size(); i++)
+			{
+				Point p = pts.get(i);
+				if(mapRef.visibility[p.x + 256 * p.y] > 1)
+					mapRef.visibility[p.x + 256 * p.y] = (byte) newVis;
+			}
+		}
+
+		@Override
+		public int compareTo(Object o) 
+		{
+			if(o instanceof VisibilityArea)
+			{
+				VisibilityArea vo = (VisibilityArea) o;
+				int a = pts.size();
+				int b = vo.pts.size();
+				if(a < b)
+					return -1;
+				if(a > b)
+					return 1;
+			}
+			return 0;
+		}
+	}
+	
+	ArrayList<VisibilityArea> visAreas;
+	private void setupVisibility(boolean mapSwap)
 	{
 		visibility = new byte[mapData.length];
 		System.out.print("vis;");
 		vbranches = new ArrayList<Point>();
+		visAreas = new ArrayList<VisibilityArea>();
 		for(int y = 0; y < 256; y++)
 		{
 			for(int x = 0; x < 256; x++)
 			{
 				if(visibility[x + 256 * y] == 0)
-					visibilityFill(new Point(x, y));
+				{
+					ArrayList<Point> pps = visibilityFill(new Point(x, y));
+					if(pps.size() > 1 && visibility[x + 256 * y] > 1)
+					{
+						VisibilityArea va = new VisibilityArea(pps, visibility[x + 256 * y], this);
+						visAreas.add(va);
+					}
+				}
 			}
 		}
 		System.out.print("vis2;");
@@ -6889,6 +7287,21 @@ class Map
 		mwr.setVisibilityData(visibility);*/
 		for(int i = 0; i < vbranches.size(); i++)
 			testVBranch(vbranches.get(i), false);
+		
+		//visibilityAreaFix();
+		/*if(mapSwap)
+		{
+			for(int y = 0; y < 256; y++)
+			{
+				for(int x = 0; x < 256; x++)
+				{
+					if(visibility[x + 256 * y] == 2)
+						visibility[x + 256 * y] = 3;
+					else if(visibility[x + 256 * y] == 3)
+						visibility[x + 256 * y] = 2;
+				}
+			}
+		}*/
 	}
 	
 	private int visibilityFix(int x, int y) //ensures that all edge mountains and forests are visible from zone 0
@@ -6905,6 +7318,59 @@ class Map
 			}
 		}
 		return 0;
+	}
+	
+	//enforces that visibility areas across Mountains are not mutually visible; this has been found to not work
+	private void visibilityAreaFix()  
+	{
+		//combine, sort, and test visibility areas
+		for(int i = 0; i < this.visAreas.size(); i++)
+		{
+			VisibilityArea va = visAreas.get(i);
+			VisibilityArea vc = null;
+			for(int j = i + 1; j < visAreas.size(); j++)
+			{
+				VisibilityArea vb = visAreas.get(j);
+				vc = va.combine(vb);
+				if(vc != null)
+				{
+					visAreas.set(j, vc);
+					break;
+				}
+			}
+			if(vc != null)
+			{
+				visAreas.remove(i);
+				i--;
+			}
+		}
+		Collections.sort(visAreas);
+		Collections.reverse(visAreas);
+		/*for(int i = 0; i < this.visAreas.size(); i++)
+		{
+			VisibilityArea va = visAreas.get(i);
+			if(va.pts.contains(new Point(87,134)))
+				System.out.println("Castle is in #" + i);
+			if(va.pts.contains(new Point(82, 133)))
+				System.out.println("Dungeon is in #" + i);
+			if(va.pts.contains(new Point(82, 136)))
+				System.out.println("Lake is in #" + i);
+		}*/
+		for(int i = 0; i < this.visAreas.size(); i++)
+		{
+			VisibilityArea va = visAreas.get(i);
+			for(int j = i + 1; j < visAreas.size(); j++)
+			{
+				VisibilityArea vb = visAreas.get(j);
+				int oldV = vb.vis;
+				//if(i == 66 && j == 74)
+					//System.out.println("");
+				boolean x = va.testAgainst(vb);
+				//if(x)
+					//System.out.println("VA #" + i + va.small + " changed visibility of VB #" + j + vb.small + " from " + oldV + " to " + vb.vis);
+				
+			}
+		}
 	}
 
 
@@ -7096,7 +7562,13 @@ class Map
 			wp++;
 		}
 		if(score > 30)
+		{
+			ArrayList<Point> aaPts = new ArrayList<Point>();
+			aaPts.addAll(toLand);
+			aaPts.addAll(fillLine);
+			this.visAreas.add(new VisibilityArea(aaPts, val, this));
 			System.out.println("  accepted choke point with a score of " + score);
+		}
 		else
 			System.out.println("  rejected choke point with a score of " + score);
 		for(int i = 0; i < toLand.size(); i++)
@@ -7259,7 +7731,7 @@ class Map
 				if(getTerrain(pts.get(i)) >= 7)
 					adj += 1 << i;
 			break;
-		case 12:
+		case 12:  //forest
 			if(getTerrain(pts.get(2)) != 12)
 				adj += 4;
 			break;
@@ -7289,7 +7761,7 @@ class Map
 		case 12:
 			if((adj & 4) == 4)
 				adjF -= 45;
-			else if(v == 1)
+			else if(v != 3)
 				adjF -= 37;
 			break;
 		case 13:
@@ -7547,7 +8019,7 @@ class Map
 		return rv;
 	}
 	
-	public byte[] makeRandomMap() throws Exception
+	public byte[] makeRandomMap(boolean mapSwap) throws Exception
 	{
 		zones = makeZones();
 		
@@ -7615,7 +8087,7 @@ class Map
 		}
 		else
 		{
-			setupVisibility();
+			setupVisibility(mapSwap);
 			return mapData;
 		}
 	}
@@ -7628,7 +8100,7 @@ class Map
 		for(int i = 0; i < nTests; i++)
 		{
 			Map m = new Map(256,256);
-			byte[] arr = m.makeRandomMap();
+			byte[] arr = m.makeRandomMap(false);
 			if(arr == null)
 			{
 				System.out.println("FAIL");
@@ -7959,6 +8431,29 @@ class Map
 	
 	private static int olapWith;
 	private int seaPad;
+	
+	public int testRectOlap(Rectangle r1, Rectangle r2)
+	{
+		int rv = 0;
+		if(r1.contains(r2.x, r2.y))
+			rv++;
+		if(r1.contains(r2.x, r2.y + r2.height))
+			rv |= 2;
+		if(r1.contains(r2.x + r2.width, r2.y))
+			rv |= 4;;
+		if(r1.contains(r2.x + r2.width, r2.y + r2.height))
+			rv |= 8;
+		if(r2.contains(r1.x, r1.y))
+			rv |= 16;
+		if(r2.contains(r1.x, r1.y + r1.height))
+			rv |= 32;
+		if(r2.contains(r1.x + r1.width, r1.y))
+			rv |= 64;
+		if(r2.contains(r1.x + r1.width, r1.y + r1.height))
+			rv |= 128;
+		return rv;
+	}
+	
 	private Rectangle noOlapRect(ArrayList<MapZone> rv, int minLen, int maxLen, int maxOverlapCount, boolean onCenterLine)
 	{
 		int failures = 0;
@@ -11249,7 +11744,12 @@ class FlagPanel extends JPanel implements ActionListener
 			{
 				hv -= n;
 				if(n == 0)  //if you delesect the 0 flag
+				{
+					hybridFlag = flags[0].charAt(0) + "0";
+					for(int j = 0; j < checks.length; j++)
+						checks[j].setSelected(false);
 					return;
+				}
 				if(hv == 0 && !flags[0].endsWith("0"))  //if you set the value to 0 and there is no 0 flag
 					return;
 			}
@@ -11296,6 +11796,7 @@ class RandoWindow extends JFrame implements ActionListener
 {
 	InputLinePanel[] inputLines;
 	JPanel topPane;
+	JButton[] tournButtons;
 	boolean threadRunning;
 	RandomizerThread rt;
 	Timer tim;
@@ -11320,6 +11821,7 @@ class RandoWindow extends JFrame implements ActionListener
 			String flags = inputLines[2].txt.getText();
 			String dir = System.getProperty("user.dir") + File.separator;
 			String outFile = dir + inputLines[3].txt.getText();
+			//String outFile2 = dir + "2" + inputLines[3].txt.getText();
 			String fname = inputLines[1].txt.getText();
 			try
 			{
@@ -11336,6 +11838,11 @@ class RandoWindow extends JFrame implements ActionListener
 			{
 				nr = rom.randomize(flags, outFile);
 				outFile = nr.filename;
+				/*long ll = Long.parseLong(inputLines[0].txt.getText());
+				UltimaRando.setSeed(ll);
+				rom = new NESRom(fname);
+				NESRom nr2 = rom.randomize(flags, outFile2);*/
+				
 			}
 			catch(Exception ex)
 			{
@@ -11374,16 +11881,33 @@ class RandoWindow extends JFrame implements ActionListener
 		String[] labels = {"Seed ", "Source ROM:", "Flags", "Output ROM:"};
 		String[] texts = {String.valueOf((long) (UltimaRando.rand() * Long.MAX_VALUE)), "", "", ""};
 		String[] buttons = {"Random Seed", "Find...", "Clear", "Make ROM"};
+		String[] tournSettings = {"Beginner", "Intermediate", "Advanced", "Finalist"};
 		
 		inputLines = new InputLinePanel[labels.length];
-		topPane = new JPanel();
-		topPane.setLayout(new GridLayout(2,2));
+		topPane = new JPanel(new BorderLayout());
+		
+		JPanel topPane1 = new JPanel(new GridLayout(2,2));
+		JPanel topPane2 = new JPanel(new GridLayout(1,4));
+		
+		//topPane.setLayout(new GridLayout(2,2));
+		
+		
 		
 		for(int i = 0; i < inputLines.length; i++)
 		{
 			inputLines[i] = new InputLinePanel(labels[i], texts[i], buttons[i], this);
-			topPane.add(inputLines[i]);
+			topPane1.add(inputLines[i]);
 		}
+		tournButtons = new JButton[tournSettings.length];
+		for(int i = 0; i < tournButtons.length; i++)
+		{
+			tournButtons[i] = new JButton(tournSettings[i]);
+			tournButtons[i].addActionListener(this);
+			topPane2.add(tournButtons[i]);
+		}
+		
+		topPane.add(topPane1, BorderLayout.CENTER);
+		topPane.add(topPane2, BorderLayout.SOUTH);
 		
 		loadConfig();
 		
@@ -11576,8 +12100,9 @@ class RandoWindow extends JFrame implements ActionListener
 		String[] op5 = {"Shuffle", "Random"};
 		String[] fl5 = {"I1", "I2"};
 		opts.add(new FlagPanel("Starting Items", op5, fl5, false, false, this));
-		String[] op3 = {"0 Virtue", "Random Virtue", "Worthy of Avatarhood", "Start as Avatar"};
-		String[] fl3 = {"V0", "V1", "V2", "V3"};
+		String[] op3 = {"0 Virtue", "Random Virtue (Same Values)", "Random Virtue (All Different Values)", 
+				"Worthy of Avatarhood", "Start as Avatar"};
+		String[] fl3 = {"V0", "V1", "V2", "V3", "V4"};
 		opts.add(new FlagPanel("Virtue", op3, fl3, false, false, this));
 		String[] op4 = {"Shuffle", "Random"};
 		String[] fl4 = {"Q1", "Q2"};
@@ -11623,9 +12148,15 @@ class RandoWindow extends JFrame implements ActionListener
 		char1B.add(opts.get(7));
 		char1B.add(opts.get(8));
 		char1.add(char1B);
-		JPanel char2 = new JPanel(new GridLayout(4, 1));
-		for(int i = 9; i < opts.size(); i++)
-			char2.add(opts.get(i));
+		JPanel char1C = new JPanel(new BorderLayout());
+		char1C.add(opts.get(9), BorderLayout.CENTER);
+		char1C.add(opts.get(10), BorderLayout.SOUTH);
+		JPanel char1D = new JPanel(new GridLayout(2, 1));
+		for(int i = 11; i < opts.size(); i++)
+			char1D.add(opts.get(i));
+		JPanel char2 = new JPanel(new GridLayout(2, 1));
+		char2.add(char1C);
+		char2.add(char1D);
 		character.add(char1);
 		character.add(char2);
 		
@@ -11702,8 +12233,8 @@ class RandoWindow extends JFrame implements ActionListener
 			//inputLines[i].setTextText("");
 			//clear options on current panel
 			clearAllOptions();
-			inputLines[2].setTextText("");
-			updateSaveName();
+			/*inputLines[2].setTextText("");
+			updateSaveName();*/
 			break;
 		case 3:
 			//String errorMsg = "";
@@ -11736,12 +12267,25 @@ class RandoWindow extends JFrame implements ActionListener
 			for(int j = 0; j < fp.checks.length; j++)
 				fp.checks[j].setSelected(false);
 		}
-		
+		inputLines[2].setTextText("");
+		updateSaveName();
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) 
 	{
+		String[] tournSet = {"DOBTAWP0R3C6V4I2Y8", "DOBTAWP0R3C6V4I2Y8E2", "DOBTAWP0R3C6V4I2Y6M9E7", "DOTAWP0R3C6I2M9E7"};
+		for(int i = 0; i < tournButtons.length; i++)
+		{
+			if(e.getSource() == tournButtons[i])
+			{
+				clearAllOptions();
+				initFlags(tournSet[i]);
+				inputLines[2].setTextText(tournSet[i]);
+				updateSaveName();
+				return;
+			}
+		}
 		if(rt != null)
 		{
 			rt.interrupt();
