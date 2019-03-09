@@ -4,6 +4,11 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.31:
+- The source of the Neagate bug has been found and eliminated
+- The source of the forest walk bug has been found and eliminated
+- Updated UI suggests Beginner, Intermediate, Advanced, and Finalist flags (much like Zelda 2 randomizer)
+
 New in ver 1.3:
 - You can now shorten the Abyss
 - You can now randomize where shops are found
@@ -30,6 +35,8 @@ New in ver 1.1:
 - There is a known UI inconsistency where the flag order in the UI and the flag order in the generated ROM will be different.  This may be fixed in a future version.
 
 Known bugs and issues:
-- The overworld map doesn't always open up your vision to beyond a 3x3 area after exiting a forest or exiting a battle on a forest next to an open area
+- Do not pick up the Robe if your inventory is full, or the game will get very angry with you
+- A bug sometimes happens with visibility zones around Castle Britannia
+- Casting the Wind spell with a short spell list causes a known visual artifact
 
 Note: Some interest was expressed in the source code for this Rando.  I have uploaded the lastest java file.  I use launch4j to build the downloadable Windows executable; feel free to look at/play with/suggest bug fixes.
