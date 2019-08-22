@@ -37,6 +37,8 @@ A:  Randomize enemy skills.  There are 14 enemy skill sets in the game; this fla
 
 W:  Modify the View spell.  Rather than simply being a functional copy of the Gem (which is cheaper than the spell's ingredients), the modified View spell counts the number of chests and number of stones not collected on each floor of the dungeon you are in and gives that information to the player.  It is no longer castable on the world map.  It is designed to greatly assist players who have gone out of their way to find Fungus, as this spell still requires Fungus and Manroot. 
 
+Z:  Modify map size by shrinking the overworld map to a 128x128 area instead of a 256x256 area.  This will modify the M# flag to only generate 3 times # the water tiles on each side. Note that there is a bug at the edge of the world map that causes your sprite to disappear when its location's X or Y >= 8.  Just call it the "fog" effect (I don't know how to fix this).
+
 Y#: Shorter Abyss.  Start the abyss at floor #.  Valid values are 1-8.  You will start in the same location as though you were entering that floor from the floor above in a normal run.
 
 P#:  Randomize shop locations.  The # is treated as follows:
@@ -57,6 +59,7 @@ R#: Randomize items in search locations.  The # in this flag is treated as a bit
 2:  Include the Sword of Paradise and Exotic Armor in search spots.  If this flag is set, any Rune is excluded from being placed in the Lyceaum and Empath Abbey Avatar-only search spots.
 4:  Switch the Sword of Paradise and Exotic Armor for a random sword and armor, respectively.
 Note: This flag also eliminates the new moons check on the new moons search spot (that contains the black stone of Humility) as that check was tied to the item itself rather than the search spot; you can therefore check the new moons moongate search spot at anytime and get the item
+8:  Randomize locations of all items, including the stones.  Note that this will make it so that the modified View spell will NOT be able to locate stone rooms that do not have stones.  This flag can only be set with 1 for a max value of 9.
 
 C#:  Boost values of gold chests.  Adds 25 times # to each gold chest you open, up to a maximum of adding 150 gold.
 
@@ -88,7 +91,7 @@ I didn't know what to put here so I decided to simply describe the map generatio
 V.  Future Development
 The following flags are things that I would like to implement, and are an open discussion to see what changes could be made to the game for a more engaging experience.
 Also, the current version doesn't change the closing credits in any way to acknowledge that roms are generated via a randomizer.  Furthermore, I am not sure about how gems and the Telesope work on the overworld map (but they should work fine in dungeons).
-Realistically, this version (1.3) will be the difinitive version for a while.  I need to spend my time on other things and time developing this will drop a lot (unless major bugs are found).
+Realistically, this version (1.31) will be the difinitive version for a while.  I need to spend my time on other things and time developing this will drop a lot (unless major bugs are found).
 
 - Additional stability (rolling a seed still has a chance of failing)
 

@@ -59,6 +59,7 @@ class NESRom
 	byte[] romData;
 	String filename;
 	private boolean mapSwap;
+	Map gameMap;
 	
 	NESRom(String fn) throws Exception
 	{
@@ -66,6 +67,7 @@ class NESRom
 		romData = loadData(fn);
 		setupInventoryList();
 		mapSwap = false;
+		gameMap = null;
 	}
 	
 	public byte[] loadData(String fname) throws Exception
@@ -88,6 +90,149 @@ class NESRom
 		return dest;
 	}
 	
+	public void changeMapSize()
+	{
+		//at f:db80 : point to call method to cap x and y at lower map size (values (eventually) stored at $42, $43))
+		String code = "a5 5e 48 a9 0e 20 31 f3 20 00 be 68 20 31 f3 b9 00 05 60 ";
+		byte[] bts = strToBytes(code);
+		writeBytes(bts, "f:db80");
+		
+		//at e:be00 : the modified method
+		int eUsed = 0;
+		code = "ad 48 04 18 7d 0c da 29 7f 85 04 a8 ad 30 04 18 7d 0e da 29 7f 85 03 20 94 dc 60";
+		bts = strToBytes(code);
+		eUsed += bts.length;
+		writeBytes(bts, "e:be00");
+		
+		//at f:da16, f:da3a, f:da64 each jump to the same method call to cap x screen start and y screen start at lower map size
+		//values stored at $49, $4a
+		code = "4c ed d9";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:da16");
+		writeBytes(bts, "f:da3a");
+		writeBytes(bts, "f:da64");
+		
+		//at f:d9ed, call the method to cap screen starts
+		code = "a9 0e 20 31 f3 4c 1b be a9 0e 20 31 f3 4c 26 be";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:d9ed");
+		
+		//at f:da11, modify the branch back to point to the second jump forward
+		code = "30 e2";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:da11");
+		
+		//at f:da3d, add in the branch back
+		code = "a9 0e 20 31 f3 4c 4c be";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:da3d");
+		
+		//f:da5f gets the modified branch back
+		code = "30 dc";
+		writeBytes(strToBytes(code), "f:da5f");
+		
+		//at e:used put the modified method
+		code = "a5 61 c9 81 d0 14 c6 49 20 66 be a6 2f ca 8a 29 3f 85 2f a9 07 85 31 4c d1 e1 ";  //move right
+		code += "c9 80 d0 0a e6 49 20 66 be e6 31 4c bb e1 ";  //move left
+		code += "c9 83 d0 15 c6 4a 20 74 be a6 30 ca 10 02 a2 1d 86 30 a9 07 85 32 4c 88 e1 ";  //move up
+		code += "e6 4a 20 74 be e6 32 4c 9f e1 ";  //move down
+		code += "ad 00 07 c9 e9 d0 06 a5 49 29 7f 85 49 60 "; //x test function
+		code += "ad 00 07 c9 e9 d0 06 a5 4a 29 7f 85 4a 60";  //y test function
+		bts = strToBytes(code);
+		eUsed += bts.length;
+		writeBytes(bts, "e:be1b");
+		
+		String ex = Integer.toString(eUsed + 48640, 16);
+		String[] a = {ex.substring(0, 2), ex.substring(2, 4)};
+		int u2 = eUsed + 8;
+		ex = Integer.toString(u2 + 48640, 16);
+		String[] c = {ex.substring(0, 2), ex.substring(2, 4)};
+		
+		//at e:used, put the methods that calculate the starting destination of the block copy
+		code = "29 7f a8 a5 49 85 02 98 ";
+		code += "0a 0a 0a 0a 85 04 a5 02 29 0f 05 04 aa ";
+		code += "98 c9 40 10 04 a9 01 10 02 a9 02 85 06 ";
+		code += "98 6a 29 1f 09 80 85 03 ";
+		code += "98 29 01 18 f0 02 a9 80 65 02 85 02 ";
+		code += "a9 10 85 05 ";
+		code += "a0 00 a5 06 c6 06 60";
+		bts = strToBytes(code);
+		int ee = 48640 + eUsed;
+		writeBytes(bts, "e:" + Integer.toHexString(ee));
+		eUsed += bts.length;
+		
+		ex = Integer.toString(eUsed + 48640, 16);
+		String[] b = {ex.substring(0, 2), ex.substring(2, 4)};
+		
+		//at e:used, put the second method
+		code = "29 7f 85 02 a5 4a a8 ";
+		code += "20 " + c[1] + " " + c[0] + " c6 05 60";
+		bts = strToBytes(code);
+		ee = 48640 + eUsed;
+		writeBytes(bts, "e:" + Integer.toHexString(ee));
+		eUsed += bts.length;
+		
+		//at f:e2ca, put the pair of methods that call the loading of a row or column of tiles that scroll on the screen
+		code = "48 ad 00 07 c9 e9 d0 05 a9 0e 20 31 f3 a5 61 c9 80 90 04 c9 82 90 04 68 6c 00 07 68 6c 02 07 20 " + a[1] + " " + a[0] + " 20 31 f3 20 5f bf 60 ";
+		code += "20 " + b[1] + " " + b[0] + " 20 31 f3 20 ae bf 60";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:e2ca");
+		
+		//change the jump targets at f:e117
+		code = "e9 e2 f3 e2";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:e117");
+		
+		//change f:e1c8 and f:e1db to call f:e2ca
+		code = "20 ca e2";
+		writeBytes(strToBytes(code), "f:e1db");
+		writeBytes(strToBytes(code), "f:e1c8");
+		
+		//at 1:bf5f and 2:bf5f, put the horizontal copy code
+		code = "b1 02 9d 00 05 c6 05 f0 20 18 ";
+		code += "a5 02 30 06 69 01 29 7f 10 06 69 01 29 7f 09 80 85 02 ";
+		code += "e8 8a 29 f0 c5 04 f0 dc a6 04 4c 5f bf 60";
+		bts = strToBytes(code);
+		writeBytes(bts, "1:bf5f");
+		writeBytes(bts, "2:bf5f");
+		
+		//at 1:bfae and 2:bfae, put the vertical copy code
+		code = "b1 02 9d 00 05 c6 05 f0 28 8a 18 69 10 aa 18 ";
+		code += "a5 02 69 80 90 02 e6 03 85 02 a5 03 ";
+		code += "c9 a0 90 e1 a9 80 85 03 e6 06 a5 06 29 01 18 69 01 20 31 f3 f0 cf 60";
+		bts = strToBytes(code);
+		writeBytes(bts, "1:bfae");
+		writeBytes(bts, "2:bfae");
+		
+		//modify the function at f:e325 to load the proper tile on the map after leaving an area or battle
+		//it currently fits exactly
+		code = "86 02 aa ";
+		code += "29 40 0a 2a 2a 85 06 69 01 ";
+		code += "20 31 f3 ";
+		code += "8a 6a 29 1f 09 80 85 03 ";
+		code += "8a 29 01 18 f0 02 a9 80 65 02 85 02 ";
+		code += "aa a0 00 60";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:e325");
+		
+		//modify sprite drawing to properly reflect the smaller map size
+		code = "ea 20 fd e2";
+		bts = strToBytes(code);
+		writeBytes(bts, "0:8174");
+		
+		code = "e5 1c 29 7f c9 10 60";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:e2fd");
+		
+		code = "ea 20 04 e3";
+		bts = strToBytes(code);
+		writeBytes(bts, "0:8187");
+		
+		code = "e5 1d 29 7f c9 10 60";
+		bts = strToBytes(code);
+		writeBytes(bts, "f:e304");
+	}
+	
 	public void changeMap(byte[] newMap)
 	{
 		//byte[][] rVal = new byte[8][];
@@ -101,6 +246,8 @@ class NESRom
 				romData[wpos + j] = newMap[rpos];
 				rpos++;
 			}
+			if(rpos >= newMap.length)
+				break;
 			wpos += 16384;
 			//rVal[i] = getData(16400 + 16384 * i, 24591 + 16384 * i);
 		}
@@ -131,13 +278,14 @@ class NESRom
 		UltCharacter ch = new UltCharacter();
 		boolean randomizeMap = false;
 		boolean randomizeMoongates = false;
+		int resizeMap = 0;
 		boolean britBalloon = false;
 		boolean changeSpellTeachers = false;
 		int changeShops = -1;
 		int dungeonPostProcessing = -1;
 		LinkedHashMap<String, Integer> flagMap = new LinkedHashMap<String, Integer>();
-		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E", "C", "V", "Q", "I", "H", "G", "S", "Y"};
-		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true, true, true, true, true, true, true, true, true};
+		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E", "C", "V", "Q", "I", "H", "G", "S", "Y", "Z"};
+		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true, true, true, true, true, true, true, true, true, false};
 		for(int i = 0; i < okFlags.length; i++)
 			flagMap.put(okFlags[i], -1);
 		while(flags.length() > 0)
@@ -255,6 +403,10 @@ class NESRom
 			case 'Y':
 				changeAbyssLength(val, dungeonPostProcessing);
 				break;
+			case 'Z':
+				resizeMap = 1;
+				changeMapSize();
+				break;
 			}
 		}
 		if(changeSpellTeachers || changeShops > -1)
@@ -272,7 +424,12 @@ class NESRom
 		//randomize map and moongates
 		if(randomizeMap)
 		{
-			Map m = new Map(256, 256);
+			
+			Map m = new Map(resizeMap);
+			if(resizeMap != 0)
+			{
+				mapPad = (mapPad / 5) * 3;
+			}
 			m.setSeaPad(mapPad);
 			m.makeRandomMap(mapSwap);
 			byte[] fm = m.generateFinalMap();
@@ -287,6 +444,7 @@ class NESRom
 			if(britBalloon)
 				changeBalloonToBritannia(m.getBritBalloon());
 			changeMap(fm);
+			gameMap = m;
 			mapSwap = !mapSwap;
 			/*MapWindow mw = new MapWindow(fm, true);
 			mw.setPOIList(m.getPOIList());
@@ -317,7 +475,9 @@ class NESRom
 			outFileName = path;
 		}
 		dumpRom(outFileName);
-		return new NESRom(outFileName);
+		NESRom rv = new NESRom(outFileName);
+		rv.gameMap = gameMap;
+		return rv;
 	}
 	
 	private void changeGateSpellCities(byte[] ord)
@@ -666,6 +826,9 @@ class NESRom
 		String[] mapItems = {"Horn", "Skull", "Bell", "Bk Stone", "Fungus", "Manroot"};
 		String[] mapIndex = {"b", "c", "9", "57", "36", "37"};
 		String[] mapLocs = {"61a2", "61a6", "61b6", "61b2", "61aa", "61ae"};
+		String[] stoneItems = {"Blue Stone", "Yellow Stone", "Red Stone", "Green Stone", "Orange Stone", "Purple Stone"};
+		String[] stoneIndex = {"d0", "d1", "d2", "d3", "d4", "d5"};
+		String[] stoneLocs = {"ecf7", "ecfc", "ed01", "ed06", "ed0b", "ed10"};
 		for(int i = 0; i < runes.length; i++)
 		{
 			s += "Rune of " + runes[i];
@@ -708,12 +871,13 @@ class NESRom
 	
 	public String getFinalSearchLocData()
 	{
-		ArrayList<Byte> bts = getSearchLocItems(2);
+		ArrayList<Byte> bts = getSearchLocItems(8);
 		String[] spots = {"Avatar Sword", "Avatar Armor", "Moonglow", "Britain", "Jhelom", "Yew", "Minoc", "Trinsic", "Castle Britannia", "Paws",
 				"Serpent's Hold 1", "Serpent's Hold 2", "Magincia 1", "Cove", "Lyceaum", "Magincia 2",
+				"Blue Stone Room", "Yellow Stone Room", "Red Stone Room", "Green Stone Room", "Orange Stone Room", "Purple Stone Room",
 				"Horn Island", "Skull Shoal", "Bell Shoal", "New Moongates", "Fungus", "Manroot"};
-		String[] items = {"1e", "28", "56", "5", "6", "7", "8", "27", "b", "c", "9", "57", "36", "37"};
-		String[] iNames = {"Pradise Sword", "Exotic Armor", "Wht Stone", "Scale", "Flute", "Candle", "Book", "Robe", "Horn", "Skull", "Bell", "Bk Stone", "Fungus", "Manroot"};
+		String[] items = {"1e", "28", "56", "5", "6", "7", "8", "27", "50", "51", "52", "53", "54", "55", "b", "c", "9", "57", "36", "37"};
+		String[] iNames = {"Pradise Sword", "Exotic Armor", "Wht Stone", "Scale", "Flute", "Candle", "Book", "Robe", "Blue Stone", "Yellow Stone", "Red Stone", "Green Stone", "Orange Stone", "Purple Stone", "Horn", "Skull", "Bell", "Bk Stone", "Fungus", "Manroot"};
 		String[] runes = {"Honesty", "Compassion", "Valor", "Justice", "Sacrifice", "Honor", "Spirituality", "Humility"};
 		
 		String rv = "";
@@ -759,7 +923,8 @@ class NESRom
 		String[] runeLocs = {"1635b", "239b1", "1f0d6", "168e1", "12650", "1a44f", "65e6", "1ae0a"};
 		String[] iLocs = {"22bb9", "22bb5", "bbe8", "1e4e8", "a467", "bb54"};
 		String[] mapLocs = {"61a2", "61a6", "61b6", "61b2", "61aa", "61ae"};
-		ArrayList<Byte> rv = new ArrayList<Byte>(22);
+		String[] stoneLocs = {"ecf7", "ecfc", "ed01", "ed06", "ed0b", "ed10"};
+		ArrayList<Byte> rv = new ArrayList<Byte>(28);
 		int j = 0;
 		if((mode & 4) == 4)
 		{
@@ -769,7 +934,7 @@ class NESRom
 			rv.add((byte) (m | -128));//add random armor
 			j = 2;
 		}
-		else if((mode & 2) == 2)
+		else if((mode & 2) == 2 || (mode & 8) == 8)
 		{
 			for(int i = 0; i < castleLocs.length; i++)
 			{
@@ -790,6 +955,15 @@ class NESRom
 			rv.add(romData[dLoc]);// = newItems.get(j);
 			j++;
 		}
+		if((mode & 8) == 8)
+		{
+			for(int i = 0; i < stoneLocs.length; i++)
+			{
+				int dLoc = Integer.parseInt(stoneLocs[i], 16);
+				rv.add(romData[dLoc]);// = newItems.get(j);
+				j++;
+			}
+		}
 		for(int i = 0; i < mapLocs.length; i++)
 		{
 			int dLoc = Integer.parseInt(mapLocs[i], 16);
@@ -805,6 +979,7 @@ class NESRom
 		String[] runeLocs = {"1635b", "239b1", "1f0d6", "168e1", "12650", "1a44f", "65e6", "1ae0a"};
 		String[] iLocs = {"22bb9", "22bb5", "bbe8", "1e4e8", "a467", "bb54"};
 		String[] mapLocs = {"61a2", "61a6", "61b6", "61b2", "61aa", "61ae"};
+		String[] stoneLocs = {"ecf7", "ecfc", "ed01", "ed06", "ed0b", "ed10"};
 		int j = 0;
 		if(mode > 1)
 		{
@@ -826,6 +1001,15 @@ class NESRom
 			int dLoc = Integer.parseInt(iLocs[i], 16);
 			romData[dLoc] = newItems.get(j);
 			j++;
+		}
+		if(mode >= 8)
+		{
+			for(int i = 0; i < stoneLocs.length; i++)
+			{
+				int dLoc = Integer.parseInt(stoneLocs[i], 16);
+				romData[dLoc] = newItems.get(j);
+				j++;
+			}
 		}
 		for(int i = 0; i < mapLocs.length; i++)
 		{
@@ -1316,21 +1500,21 @@ class NESRom
 			//it is a 76 byte monstrosity in total
 			String[] a0 = {"93", "94", "95", "96", "97", "98"};
 			code = "a5 53 8d de 06 a5 54 8d df 06 a5 4c 8d dd 06 8d dc 06 "; //store off current city index and current memory page
-			code += "68 a2 00 a8 bd " + a0[0] + " be d0 05 98 48 4c a7 bf ";  //pull off villager index, store in y, and exit if 0 is the next entry in the table
+			code += "68 a2 00 a8 bd " + a0[0] + " be d0 05 98 48 4c a8 bf ";  //pull off villager index, store in y, and exit if 0 is the next entry in the table
 			code += "98 dd " + a0[0] + " be d0 07 a5 53 dd " + a0[1] + " be f0 07 18 8a 69 06 aa d0 e2 ";  //also test city index and if not equal move to the next table entry
-			code += "bd " + a0[2] + " be 48 bd " + a0[3] + " be 85 53 bd " + a0[4] + " be 85 54 bd " + a0[5] + " be 85 4c 8d dc 06 4c a7 bf";  //if found, do the hot swap of city index and page index
+			code += "bd " + a0[2] + " be 48 bd " + a0[3] + " be 85 53 bd " + a0[4] + " be 85 54 bd " + a0[5] + " be 85 4c 8d dc 06 4c a8 bf";  //if found, do the hot swap of city index and page index
 			bts = strToBytes(code);
 			s = 65110;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
-			//step 4: line ec5f (3ec6f) calls bf88 to cleanup (restore you to the proper city)
-			code = "4c 88 bf";
+			//step 4: line ec5f (3ec6f) calls bf89 to cleanup (restore you to the proper city)
+			code = "4c 89 bf";
 			bts = strToBytes(code);
 			s = 257135;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
-			//step 5: line ec62 (3ec72) calls bf8e to cleanup
-			code = "20 8e bf";
+			//step 5: line ec62 (3ec72) calls bf8f to cleanup
+			code = "20 8f bf";
 			bts = strToBytes(code);
 			s = 257138;
 			for(int i = 0; i < bts.length; i++)
@@ -1339,13 +1523,13 @@ class NESRom
 			for(int j = 0; j < pgs.length; j++)
 			{
 				int page = 16384 * pgs[j];
-				//step 6: put cleanup in all pertinent pages at bf88 (pages 1-8 and D)
-				code = "20 95 bf 4c fc c1 20 95 bf 20 2a c9 60 ";
+				//step 6: put cleanup in all pertinent pages at bf89 (pages 1-8 and D)
+				code = "20 96 bf 4c fc c1 20 96 bf 20 2a c9 60 ";
 				code += "48 ad dd 06 85 4c ad de 06 85 53 ad df 06 85 54 68 60 ";
 				//step 7: put this small function to return the final villager in all pertinent pages (1-8 and D)
 				code += "20 2f f3 4c 4d ec";
 				bts = strToBytes(code);
-				s = page + 16280; //addr + 3f98  (16 byte shift)
+				s = page + 16281; //addr + 3f99  (16 byte shift)
 				for(int i = 0; i < bts.length; i++)
 					romData[s + i] = bts[i];
 			}
@@ -2163,6 +2347,18 @@ class NESRom
 		{
 			inventoryList.put(i + 1, items[i]);
 		}
+	}
+	
+	private void writeBytes(byte[] bts, String start)
+	{
+		String[] p = start.split(":");
+		int loc = Integer.parseInt(p[0], 16);
+		loc = loc * 16384 + 16;
+		int loc2 = Integer.parseInt(p[1], 16);
+		loc2 %= 16384;
+		loc += loc2;
+		for(int i = 0; i < bts.length; i++)
+			romData[loc + i] = bts[i];
 	}
 	
 	public byte[] strToBytes(String in)
@@ -5425,6 +5621,7 @@ class Map
 	Point abyss;
 	Point fungus;
 	Point manroot;
+	int width, height;
 	
 	class MapZone
 	{
@@ -5483,21 +5680,80 @@ class Map
 			inZone = rv;
 			return rv;
 		}
+		
+		public Point selectRandomEdge()
+		{
+			int failures = 0;
+			while(failures < 3000)
+			{
+				int rx = area.x + (int) (Math.random() * area.width);
+				int ry = area.y + (int) (Math.random() * area.height);
+				if(mapData[ry * width + rx] != terrain)
+				{
+					failures++;
+					continue;
+				}
+				Point[] rv = new Point[4];
+				int xx = rx;
+				int yy = ry;
+				//go left
+				while(mapData[yy * width + xx] == terrain)
+				{
+					xx--;
+					if(xx < 0)
+						xx = width - 1;
+				}
+				rv[0] = normalizePoint(new Point(xx + 1, yy));
+				xx = rx;
+				yy = ry;
+				// go right
+				while(mapData[yy * width + xx] == terrain)
+				{
+					xx++;
+					if(xx > width)
+						xx = 0;
+				}
+				rv[1] = normalizePoint(new Point(xx - 1, yy));
+				xx = rx;
+				yy = ry;
+				//go up
+				while(mapData[yy * width + xx] == terrain)
+				{
+					yy--;
+					if(yy < 0)
+						yy = height - 1;
+				}
+				rv[2] = normalizePoint(new Point(xx, yy + 1));
+				xx = rx;
+				yy = ry;
+				// go down
+				while(mapData[yy * width + xx] == terrain)
+				{
+					yy++;
+					if(yy > height)
+						yy = 0;
+				}
+				rv[3] = normalizePoint(new Point(xx, yy - 1));
+				int rr = (int) (Math.random() * 4);
+				return rv[rr];
+			}
+			return null;
+		}
 
 		private void fillPoint(int x, int y)
 		{
-			if(mapData[256 * y + x] == 0)
+			if(mapData[width * y + x] == 0)
 			{
-				mapData[256 * y + x] = terrain;
-				zoneData[256 * y + x] = index;
+				mapData[width * y + x] = terrain;
+				zoneData[width * y + x] = index;
 				filled.add(new Point(x, y));
 			}
-			else if(mapData[256 * y + x] == terrain)
+			else if(mapData[width * y + x] == terrain)
 				return;
 			else if(UltimaRando.rand() > 0.85)
 			{
-				mapData[256 * y + x] = terrain;
-				zoneData[256 * y + x] = index;
+				mapData[width * y + x] = terrain;
+				zoneData[width * y + x] = index;
 				filled.add(new Point(x, y));
 			}
 		}
@@ -5515,7 +5771,7 @@ class Map
 		
 		private void fillFeaturePoint(int x, int y, int val, double probIn, double probOut, boolean landMatch)
 		{
-			byte b = mapData[256 * y + x];
+			byte b = mapData[width * y + x];
 			if(b == val)
 			{
 				//filled.add(new Point(x, y));
@@ -5533,13 +5789,13 @@ class Map
 			{
 				if(UltimaRando.rand() < probIn)
 				{
-					mapData[256 * y + x] = (byte) val;
+					mapData[width * y + x] = (byte) val;
 					filled.add(new Point(x, y));
 				}
 			}
 			else if(UltimaRando.rand() < probOut)
 			{
-				mapData[256 * y + x] = (byte) val;
+				mapData[width * y + x] = (byte) val;
 				filled.add(new Point(x, y));
 			}
 			if(filled.size() == 0)
@@ -5576,6 +5832,8 @@ class Map
 		
 		public boolean featureOKForDungeon()
 		{
+			//if(filled.size() == 0)
+				//return false;
 			switch(terrain)
 			{
 			case 3:  case 6:  case 8:
@@ -5667,6 +5925,8 @@ class Map
 				terrain = (byte) fnum;
 				findZone(zones);
 			}
+			//else
+				//terrain = -1;
 		}
 		
 		public boolean checkFeaturePlacement(int fnum)
@@ -5892,7 +6152,7 @@ class Map
 			int maxDx = w / 2;
 			int maxDy = h / 2;
 			double dIn = 1.0;
-			byte pfb = mapData[y * 256 + x];
+			byte pfb = mapData[y * width + x];
 			featureFill(10, 1.0, 1.0, false);  //note that this feature fill requires land types to be different (you are placing land on water)
 			if(filled.size() == 0)
 			{
@@ -5955,7 +6215,7 @@ class Map
 					}
 				}
 				if(isEdge && UltimaRando.rand() < cliffed)
-					mapData[p.y * 256 + p.x] = 13;
+					mapData[p.y * width + p.x] = 13;
 			}
 			//System.out.println(printIslandData());
 			/*for(int i = filled.size() - 1; i >= 0; i--)
@@ -6288,7 +6548,8 @@ class Map
 			Point pa = null;
 			int initDir = 0;
 			int initPoss = 0;
-			int msqr = (int) Math.sqrt(mapData.length);
+			//int msqr = (int) Math.sqrt(mapData.length);
+			int msqr = width;
 			boolean v[] = new boolean[mapData.length];
 			ArrayList<ITree> tree = getRiverDelta();
 			if(mapData[pc.y * msqr + pc.x] != 1)
@@ -6548,21 +6809,21 @@ class Map
 				int xx = cp.x;
 				int yy = cp.y;
 				xx++;
-				if(xx > 255)
+				if(xx >= width)
 					xx = 0;
 				fillFeaturePoint(xx, yy, val, probIn, probOut, requireMatch);
 				xx -= 2;
 				if(xx < 0)
-					xx += 256;
+					xx += width;
 				fillFeaturePoint(xx, yy, val, probIn, probOut, requireMatch);
 				xx = cp.x;
 				yy++;
-				if(yy > 255)
+				if(yy >= height)
 					yy = 0;
 				fillFeaturePoint(xx, yy, val, probIn, probOut, requireMatch);
 				yy -= 2;
 				if(yy < 0)
-					yy += 256;
+					yy += height;
 				fillFeaturePoint(xx, yy, val, probIn, probOut, requireMatch);
 				fillPoint++;
 				if(fillPoint >= filled.size())
@@ -6590,21 +6851,21 @@ class Map
 				int xx = cp.x;
 				int yy = cp.y;
 				xx++;
-				if(xx > 255)
+				if(xx >= width)
 					xx = 0;
 				fillPoint(xx, yy);
 				xx -= 2;
 				if(xx < 0)
-					xx += 256;
+					xx += width;
 				fillPoint(xx, yy);
 				xx = cp.x;
 				yy++;
-				if(yy > 255)
+				if(yy >= height)
 					yy = 0;
 				fillPoint(xx, yy);
 				yy -= 2;
 				if(yy < 0)
-					yy += 256;
+					yy += height;
 				fillPoint(xx, yy);
 				fillPoint++;
 			}
@@ -6623,7 +6884,7 @@ class Map
 			{
 				for(int x = area.x; x < area.x + area.width; x++)
 				{
-					byte b = mapData[256 * y + x];
+					byte b = mapData[width * y + x];
 					if(b > 7 || (b & 1) == 0)
 						rv++;
 				}
@@ -6647,7 +6908,7 @@ class Map
 				return false;
 		}
 
-		public boolean heightFill(double[] heightMap) 
+		public boolean heightFill(double[] heightMap) //not used
 		{
 			if(fillPoint == -1)
 			{
@@ -6692,7 +6953,7 @@ class Map
 			return true;
 		}
 		
-		private byte getBaseHeight(byte terrain)
+		private byte getBaseHeight(byte terrain)  //not used
 		{
 			switch(terrain)
 			{
@@ -6704,7 +6965,7 @@ class Map
 			}
 		}
 		
-		private double getHeight(int x, int y, double[] heightMap)
+		private double getHeight(int x, int y, double[] heightMap)  //not used
 		{
 			//base terrain height
 			ArrayList<Point> surrPoints = getSurrPoints(new Point(x ,y));
@@ -6773,6 +7034,24 @@ class Map
 		zoneData = new byte[w * h];
 		zones = null;
 		features = null;
+		width = w;
+		height = h;
+	}
+	
+	Map(int size)
+	{
+		int w = 256;
+		int h = 256;
+		switch(size)
+		{
+		case 1: w = 128;  h = 128; break;
+		}
+		mapData = new byte[w * h];
+		zoneData = new byte[w * h];
+		zones = null;
+		features = null;
+		width = w;
+		height = h;
 	}
 	
 	public void setSeaPad(int amt)
@@ -6780,7 +7059,7 @@ class Map
 		seaPad = amt;
 		int noise = 4;
 		int r = 0;
-		for(int j = 0; j < 256; j++)
+		for(int j = 0; j < width; j++)
 		{
 			r = (int) (UltimaRando.rand() * 8);
 			if(r < noise)
@@ -6788,23 +7067,23 @@ class Map
 			if(r > noise)
 				noise++;
 			for(int i = 0; i < seaPad + noise - 4; i++)
-				mapData[(i << 8) + j] = 1;
+				mapData[(i * height) + j] = 1;
 		}
 		//System.out.println();
 		noise = 4;
-		for(int j = 0; j < 256; j++)
+		for(int j = 0; j < width; j++)
 		{
 			r = (int) (UltimaRando.rand() * 8);
 			if(r < noise)
 				noise--;
 			if(r > noise)
 				noise++;
-			for(int i = 256 - seaPad - noise + 4; i < 256; i++)
-				mapData[(i << 8) + j] = 1;
+			for(int i = height - seaPad - noise + 4; i < height; i++)
+				mapData[(i * height) + j] = 1;
 		}
 		//System.out.println();
 		int noise2 = 4;
-		for(int i = seaPad - 4; i < 256 - seaPad + 4; i++)
+		for(int i = seaPad - 4; i < height - seaPad + 4; i++)
 		{
 			r = (int) (UltimaRando.rand() * 8);
 			if(r < noise)
@@ -6812,14 +7091,14 @@ class Map
 			if(r > noise)
 				noise++;
 			for(int j = 0; j < seaPad + noise - 4; j++)
-				mapData[(i << 8) + j] = 1;
+				mapData[(i * height) + j] = 1;
 			r = (int) (UltimaRando.rand() * 8);
 			if(r < noise2)
 				noise2--;
 			if(r > noise2)
 				noise2++;
-			for(int j = 256 - seaPad - noise2 + 4; j < 256; j++)
-				mapData[(i << 8) + j] = 1;
+			for(int j = width - seaPad - noise2 + 4; j < width; j++)
+				mapData[(i * height) + j] = 1;
 		}
 		//MapWindow mwn = new MapWindow(mapData, false);
 	}
@@ -6838,21 +7117,21 @@ class Map
 		while(wp < toLand.size())
 		{
 			Point wwp = toLand.get(wp);
-			byte b = mapData[wwp.x + 256 * wwp.y];  //test to expand
-			byte c = visibility[wwp.x + 256 * wwp.y];
+			byte b = mapData[wwp.x + width * wwp.y];  //test to expand
+			byte c = visibility[wwp.x + width * wwp.y];
 			if(b != 12 && b != 13)
 			{
 				ArrayList<Point> sp = getSurrPoints(wwp);
 				for(int i = 0; i < 4; i++)
 				{
 					Point wn = sp.get(i);
-					byte d = visibility[wn.x + 256 * wn.y];
+					byte d = visibility[wn.x + width * wn.y];
 					if(d == 0)
 						toLand.add(wn);  //always add
-					visibility[wn.x + 256 * wn.y] = 1;
+					visibility[wn.x + width * wn.y] = 1;
 				}
 			}
-			visibility[wwp.x + 256 * wwp.y] = 1;
+			visibility[wwp.x + width * wwp.y] = 1;
 			wp++;
 		}
 		//System.out.print("vfill");
@@ -6860,7 +7139,7 @@ class Map
 		for(int i = 0; i < toLand.size(); i++)
 		{
 			Point p = toLand.get(i);
-			if(mapData[p.x + 256 * p.y] == 1)
+			if(mapData[p.x + width * p.y] == 1)
 			{
 				isMain = true;
 				break;
@@ -6871,15 +7150,15 @@ class Map
 			for(int i = 0; i < toLand.size(); i++)
 			{
 				Point p = toLand.get(i);
-				visibility[p.x + 256 * p.y] = 2;  //zone 1 -> 2
-				byte b = mapData[p.x + 256 * p.y];
+				visibility[p.x + width * p.y] = 2;  //zone 1 -> 2
+				byte b = mapData[p.x + width * p.y];
 				if(b != 12 && b != 13)  //this flood select captures the corners
 				{
 					ArrayList<Point> pts = getSurrPoints(p);
 					for(int j = 0; j < pts.size(); j++)
 					{
 						Point p2 = pts.get(j);
-						if(visibility[p2.x + 256 * p2.y] != 2)
+						if(visibility[p2.x + width * p2.y] != 2)
 							toLand.add(p2);
 					}
 				}
@@ -6888,10 +7167,10 @@ class Map
 		if(toLand.size() == 1)
 		{
 			if(getTerrain(origin.x, origin.y) == 12)
-				visibility[origin.x + 256 * origin.y] = 3;
+				visibility[origin.x + width * origin.y] = 3;
 			else
 			{
-				visibility[origin.x + 256 * origin.y] = 4;
+				visibility[origin.x + width * origin.y] = 4;
 				ArrayList<Point> vb = getSurrPoints(origin);  //1 step; still need 2nd step away
 				for(int i = 0; i < vb.size(); i++)
 				{
@@ -6900,8 +7179,8 @@ class Map
 					for(int j = 0; j < vb2.size(); j++)
 					{
 						Point p2 = vb2.get(j);
-						byte a = accessData[p2.x + 256 * p2.y];
-						if(visibility[p2.x + 256 * p2.y] == 1 && a > 0 && a < 8)
+						byte a = accessData[p2.x + width * p2.y];
+						if(visibility[p2.x + width * p2.y] == 1 && a > 0 && a < 8)
 							vbranches.add(p2);
 					}
 				}
@@ -6953,29 +7232,29 @@ class Map
 				if(p.y > maxY) maxY = p.y;
 			}
 			
-			if(minX == 0 && maxX == 255)
+			if(minX == 0 && maxX == width - 1)
 			{
-				minX = 255;
+				minX = width - 1;
 				maxX = 0;
 				for(int i = 0; i < pts.size(); i++)
 				{
 					Point p = pts.get(i);	
-					if(p.x > 128 && p.x < minX) minX = p.x;
-					if(p.x < 128 && p.x > maxX) maxX = p.x;
+					if(p.x > (width / 2) && p.x < minX) minX = p.x;
+					if(p.x < (width / 2) && p.x > maxX) maxX = p.x;
 				}
 				maxX += minX;
 				smallHWrap = true;
 			}
 			
-			if(minY == 0 && maxY == 255)
+			if(minY == 0 && maxY == height - 1)
 			{
-				minY = 255;
+				minY = height - 1;
 				maxY = 0;
 				for(int i = 0; i < pts.size(); i++)
 				{
 					Point p = pts.get(i);	
-					if(p.y > 128 && p.y < minX) minX = p.y;
-					if(p.y < 128 && p.y > maxX) maxX = p.y;
+					if(p.y > (height / 2) && p.y < minX) minX = p.y;
+					if(p.y < (height / 2) && p.y > maxX) maxX = p.y;
 				}
 				maxY += minY;
 				smallVWrap = true;
@@ -6996,11 +7275,11 @@ class Map
 				int yy = 0;
 				Point p = pts.get(i);
 				if(minX > p.x)
-					xx = p.x + 256 - minX;
+					xx = p.x + width - minX;
 				else
 					xx = p.x - minX;
 				if(minY > p.y)
-					yy = p.y + 256 - minY;
+					yy = p.y + height - minY;
 				else
 					yy = p.y - minY;
 				pa[yy][xx] = p;
@@ -7080,13 +7359,13 @@ class Map
 						if(claimed.y < 0)
 						{
 							largeVWrap = true;
-							claimed.y += 256;
+							claimed.y += height;
 						}
 						claimed.height += 16;
 						break;
 					case 1:
 						claimed.height += 16;
-						if(claimed.y + claimed.height >= 256)
+						if(claimed.y + claimed.height >= height)
 							largeVWrap = true;
 						break;
 					case 2:
@@ -7094,13 +7373,13 @@ class Map
 						if(claimed.x < 0)
 						{
 							largeHWrap = true;
-							claimed.x += 256;
+							claimed.x += width;
 						}
 						claimed.width += 16;
 						break;
 					case 3:
 						claimed.width += 16;
-						if(claimed.x + claimed.width >= 256)
+						if(claimed.x + claimed.width >= width)
 							largeHWrap = true;
 						break;
 					}
@@ -7113,9 +7392,9 @@ class Map
 			Rectangle r1 = new Rectangle(oth.small);
 			Rectangle r2 = new Rectangle(this.small);
 			if(oth.smallHWrap && !smallHWrap)
-				r2.x += 256;
+				r2.x += width;
 			if(oth.smallVWrap && !smallVWrap)
-				r2.y += 256;
+				r2.y += height;
 			int olap = mapRef.testRectOlap(r1, r2);
 			if(olap == 0)
 				return null;
@@ -7129,13 +7408,13 @@ class Map
 			for(int i = 0; i < sm.size(); i++)
 			{
 				Point p = sm.get(i);
-				if(mapRef.mapData[p.x + 256 * p.y] == 13)
+				if(mapRef.mapData[p.x + width * p.y] == 13)
 					continue;
 				ArrayList<Point> pl = mapRef.getSurrPoints(p);
 				for(int j = 0; j < pl.size(); j++)
 				{
 					Point p2 = pl.get(j);
-					if(mapRef.mapData[p2.x + 256 * p2.y] == 13)
+					if(mapRef.mapData[p2.x + width * p2.y] == 13)
 						continue;
 					if(lg.contains(p2))
 					{
@@ -7154,17 +7433,17 @@ class Map
 			Rectangle r1 = new Rectangle(oth.small);
 			Rectangle r2 = new Rectangle(this.claimed);
 			if(oth.smallHWrap && !largeHWrap)
-				r2.x += 256;
+				r2.x += width;
 			if(oth.smallVWrap && !largeVWrap)
-				r2.y += 256;
+				r2.y += height;
 			int olap = mapRef.testRectOlap(r1, r2);
 			if(olap == 0)  //you did not overlap with big
 				return false;
 			Rectangle r3 = new Rectangle(this.small);
 			if(oth.smallHWrap && !largeHWrap)
-				r3.x += 256;
+				r3.x += width;
 			if(oth.smallVWrap && !largeVWrap)
-				r3.y += 256;
+				r3.y += height;
 			olap = mapRef.testRectOlap(r1, r3);
 			if(olap == 0)  //if you overlap with big but not small then definitely change
 			{
@@ -7227,8 +7506,8 @@ class Map
 			for(int i = 0; i < pts.size(); i++)
 			{
 				Point p = pts.get(i);
-				if(mapRef.visibility[p.x + 256 * p.y] > 1)
-					mapRef.visibility[p.x + 256 * p.y] = (byte) newVis;
+				if(mapRef.visibility[p.x + width * p.y] > 1)
+					mapRef.visibility[p.x + width * p.y] = (byte) newVis;
 			}
 		}
 
@@ -7256,16 +7535,16 @@ class Map
 		System.out.print("vis;");
 		vbranches = new ArrayList<Point>();
 		visAreas = new ArrayList<VisibilityArea>();
-		for(int y = 0; y < 256; y++)
+		for(int y = 0; y < height; y++)
 		{
-			for(int x = 0; x < 256; x++)
+			for(int x = 0; x < width; x++)
 			{
-				if(visibility[x + 256 * y] == 0)
+				if(visibility[x + width * y] == 0)
 				{
 					ArrayList<Point> pps = visibilityFill(new Point(x, y));
-					if(pps.size() > 1 && visibility[x + 256 * y] > 1)
+					if(pps.size() > 1 && visibility[x + width * y] > 1)
 					{
-						VisibilityArea va = new VisibilityArea(pps, visibility[x + 256 * y], this);
+						VisibilityArea va = new VisibilityArea(pps, visibility[x + width * y], this);
 						visAreas.add(va);
 					}
 				}
@@ -7273,11 +7552,11 @@ class Map
 		}
 		System.out.print("vis2;");
 		int fixed = 0;
-		for(int y = 0; y < 256; y++)
+		for(int y = 0; y < height; y++)
 		{
-			for(int x = 0; x < 256; x++)
+			for(int x = 0; x < width; x++)
 			{
-				if(visibility[x + 256 * y] > 1)
+				if(visibility[x + width * y] > 1)
 					fixed += visibilityFix(x, y);
 			}
 		}
@@ -7310,10 +7589,10 @@ class Map
 		for(int i = 0; i < s4.size(); i++)
 		{
 			Point p = s4.get(i);
-			int loc = p.x + 256 * p.y;
+			int loc = p.x + width * p.y;
 			if(visibility[loc] == 1 && mapData[loc] != 12 && mapData[loc] != 13)
 			{
-				visibility[x + 256 * y] = 1;
+				visibility[x + width * y] = 1;
 				return 1;
 			}
 		}
@@ -7376,7 +7655,7 @@ class Map
 
 	private int[] testVBranch(Point p, boolean distOnly)
 	{
-		if(visibility[p.x + 256 * p.y] == 1 || distOnly)
+		if(visibility[p.x + width * p.y] == 1 || distOnly)
 		{
 			//I'm at a branch opening
 			ArrayList<Point> s4 = getSurrPoints(p);
@@ -7397,7 +7676,7 @@ class Map
 				{
 					Point np = new Point(p.x + k * dx, p.y + k * dy);
 					np = normalizePoint(np);
-					if(visibility[np.x + 256 * np.y] == 1)
+					if(visibility[np.x + width * np.y] == 1)
 						k++;
 					else
 						break;
@@ -7443,7 +7722,7 @@ class Map
 				else
 					po = new Point(p.x, p.y - 1);  //po cuts off the top
 				po = normalizePoint(po);
-				vis = visibility[po.x + 256 * po.y];
+				vis = visibility[po.x + width * po.y];
 				if(vis < 5 || vis == 7)  vis = 5;
 				else vis = 7;
 				/*vis = (byte) (visibility[po.x + 256 * po.y] + 1);
@@ -7455,14 +7734,14 @@ class Map
 				{
 					Point pl = new Point(p.x - i, p.y);
 					pl = normalizePoint(pl);
-					visibility[pl.x + 256 * pl.y] = vis;
+					visibility[pl.x + width * pl.y] = vis;
 					fillLine.add(pl);
 				}
 				for(int i = 0; i <= dists[1]; i++)
 				{
 					Point pl = new Point(p.x + i, p.y);
 					pl = normalizePoint(pl);
-					visibility[pl.x + 256 * pl.y] = vis;
+					visibility[pl.x + width * pl.y] = vis;
 					fillLine.add(pl);
 				}
 				System.out.println("Added H mtn choke point at " + p + "; po=" + po + "; chk=" + choke[0]);
@@ -7479,7 +7758,7 @@ class Map
 				else
 					po = new Point(p.x - 1, p.y);  //cut off fillig to the left
 				po = normalizePoint(po);
-				byte vs = visibility[po.x + 256 * po.y];
+				byte vs = visibility[po.x + width * po.y];
 				if(vs < 5 || vs == 7)  vs = 5;
 				else vs = 7;
 				/*vis = (byte) (visibility[po.x + 256 * po.y] + 1);
@@ -7491,14 +7770,14 @@ class Map
 				{
 					Point pl = new Point(p.x, p.y - i);
 					pl = normalizePoint(pl);
-					visibility[pl.x + 256 * pl.y] = vis;
+					visibility[pl.x + width * pl.y] = vis;
 					fillLine.add(pl);
 				}
 				for(int i = 0; i <= dists[3]; i++)
 				{
 					Point pl = new Point(p.x, p.y + i);
 					pl = normalizePoint(pl);
-					visibility[pl.x + 256 * pl.y] = vis;
+					visibility[pl.x + width * pl.y] = vis;
 					fillLine.add(pl);
 				}
 				System.out.println("Added V mtn choke point at " + p + "; po=" + po + "; chk=" + choke[1]);
@@ -7515,20 +7794,20 @@ class Map
 		boolean[] sel = new boolean[visibility.length];
 		ArrayList<Point> toLand = new ArrayList<Point>();
 		toLand.add(p);
-		visibility[p.x + 256 * p.y] = 1;
-		byte val = (byte) (visibility[p.x + 256 * p.y] + 1);  //set everything to val
+		visibility[p.x + width * p.y] = 1;
+		byte val = (byte) (visibility[p.x + width * p.y] + 1);  //set everything to val
 		for(int i = 0; i < fillLine.size(); i++)  //this sets up the guard against filling both sides
 		{
 			Point px = fillLine.get(i);
-			sel[px.x + 256 * px.y] = true;
+			sel[px.x + width * px.y] = true;
 		}
-		sel[p.x + 256 * p.y] = false;
+		sel[p.x + width * p.y] = false;
 		int wp = 0;
 		int score = 0;
 		while(wp < toLand.size())
 		{
 			Point wwp = toLand.get(wp);
-			byte d = mapData[wwp.x + 256 * wwp.y];
+			byte d = mapData[wwp.x + width * wwp.y];
 			if(d == 1)  //too far
 			{
 				score = -1;
@@ -7540,13 +7819,13 @@ class Map
 				for(int i = 0; i < 4; i++)
 				{
 					Point wn = sp.get(i);
-					boolean c = sel[wn.x + 256 * wn.y];
-					byte b = visibility[wn.x + 256 * wn.y];
+					boolean c = sel[wn.x + width * wn.y];
+					byte b = visibility[wn.x + width * wn.y];
 					if(c == false && b == 1)
 					{
 						//visibility[wn.x + 256 * wn.y] = val;
 						toLand.add(wn);  
-						sel[wn.x + 256 * wn.y] = true;
+						sel[wn.x + width * wn.y] = true;
 						//System.out.print("+");
 						//
 						if(horiz)
@@ -7575,17 +7854,17 @@ class Map
 		{
 			Point wn = toLand.get(i);
 			if(score > 30)
-				visibility[wn.x + 256 * wn.y] = val;
-			else if(visibility[wn.x + 256 * wn.y] >= 5)
-				visibility[wn.x + 256 * wn.y] = 1;  //not a sufficiently good fill point
+				visibility[wn.x + width * wn.y] = val;
+			else if(visibility[wn.x + width * wn.y] >= 5)
+				visibility[wn.x + width * wn.y] = 1;  //not a sufficiently good fill point
 		}
 		for(int i = 0; i < fillLine.size(); i++)
 		{
 			Point wn = fillLine.get(i);
 			if(score > 30)
-				visibility[wn.x + 256 * wn.y] = val;
-			else if(visibility[wn.x + 256 * wn.y] >= 5)
-				visibility[wn.x + 256 * wn.y] = 1;  //not a sufficiently good fill point
+				visibility[wn.x + width * wn.y] = val;
+			else if(visibility[wn.x + width * wn.y] >= 5)
+				visibility[wn.x + width * wn.y] = 1;  //not a sufficiently good fill point
 		}
 	}
 
@@ -7619,9 +7898,9 @@ class Map
 	private void extendShores()
 	{
 		//insert shoreline
-		for(int y = 0; y < 256; y++)
+		for(int y = 0; y < height; y++)
 		{
-			for(int x = 0; x < 256; x++)
+			for(int x = 0; x < width; x++)
 			{
 				if(getTerrain(x, y) == 1)
 				{
@@ -7638,9 +7917,9 @@ class Map
 		}
 		
 		//extend shoreline
-		for(int y = 0; y < 256; y++)
+		for(int y = 0; y < height; y++)
 		{
-			for(int x = 0; x < 256; x++)
+			for(int x = 0; x < width; x++)
 			{
 				if(getTerrain(x, y) == 3)
 				{
@@ -7710,9 +7989,9 @@ class Map
 	
 	private byte getFinalTile(int x, int y)
 	{
-		byte t = mapData[x + 256 * y];
-		byte v = visibility[x + 256 * y];
-		byte out = 0;
+		byte t = mapData[x + width * y];
+		byte v = visibility[x + width * y];
+		//byte out = 0;
 		byte adj = 0;
 		ArrayList<Point> pts = getSurrPoints(new Point(x, y));
 		//special location adjustment
@@ -7815,11 +8094,11 @@ class Map
 	public byte[] generateFinalMap()
 	{
 		byte[] rv = new byte[mapData.length];
-		for(int i = 0; i < 256; i++)
+		for(int i = 0; i < height; i++)
 		{
-			for(int j = 0; j < 256; j++)
+			for(int j = 0; j < width; j++)
 			{
-				rv[j + 256 * i] = getFinalTile(j, i);
+				rv[j + width * i] = getFinalTile(j, i);
 			}
 		}
 		return rv;
@@ -7837,7 +8116,7 @@ class Map
 		ArrayList<POI> rv = new ArrayList<POI>(odLocs.length);
 		for(int i = 0; i < odLocs.length; i++)
 		{
-			Point p = new Point((int) (locs[i * 2] & 255), (int) (locs[i * 2 + 1] & 255));
+			Point p = new Point((int) (locs[i * 2] & (width - 1)), (int) (locs[i * 2 + 1] & (height - 1)));
 			POI pt = new POI(p, odLocs[i]);
 			rv.add(pt);
 		}
@@ -7963,16 +8242,16 @@ class Map
 			int xf = (x1 + x2) / 2;
 			if(Math.abs(x1 - xf) > 10)
 			{
-				int xa = Math.min(x1, x2) + 256;
+				int xa = Math.min(x1, x2) + width;
 				xf = (Math.max(x1, x2) + xa) / 2;
-				xf &= 255;
+				xf &= (width - 1);
 			}
 			int yf = (y1 + y2) / 2;
 			if(Math.abs(y1 - yf) > 10)
 			{
-				int ya = Math.min(y1, y2) + 256;
+				int ya = Math.min(y1, y2) + height;
 				yf = (Math.max(y1, y2) + ya) / 2;
-				yf &= 255;
+				yf &= (height - 1);
 			}
 			Point p = new Point(xf, yf);
 			starts.add(p);
@@ -8070,7 +8349,7 @@ class Map
 		townsNCastles = new ArrayList<Point>();
 		townsNCastles.addAll(placeCastles());
 		townsNCastles.addAll(placeOtherTowns());
-		abyss = placeAbyss();
+		//abyss = placeAbyss();
 		//System.out.println("All locations placed.");
 		ensureAccess();
 		whirlpool = placeWhirlpool();
@@ -8150,10 +8429,10 @@ class Map
 			Point mp = new Point(manroot.cx + dx, manroot.cy + dy);
 			if(getTerrain(mp.x, mp.y) == 10)
 			{
-				mp.x += 256;
-				mp.x %= 256;
-				mp.y += 256;
-				mp.y %= 256;
+				mp.x += width;
+				mp.x %= width;
+				mp.y += height;
+				mp.y %= height;
 				putTerrain(mp.x, mp.y, (byte) 14);
 				//searchSpots.add(mp);
 				ensurePOIUnique(new Rectangle(mp.x, mp.y, 1, 1), true);
@@ -8180,10 +8459,10 @@ class Map
 				putTerrain(fp.x, fp.y, (byte) 12);
 			if(getTerrain(fp.x, fp.y) == 12)
 			{
-				fp.x += 256;
-				fp.x %= 256;
-				fp.y += 256;
-				fp.y %= 256;
+				fp.x += width;
+				fp.x %= width;
+				fp.y += height;
+				fp.y %= height;
 				//putTerrain(fp.x, fp.y, (byte) 14);
 				//searchSpots.add(fp);
 				ensurePOIUnique(new Rectangle(fp.x, fp.y, 1, 1), true);
@@ -8225,39 +8504,39 @@ class Map
 
 	public byte getTerrain(int x, int y)
 	{
-		if(x < 0)  x += 256;
-		if(x > 255)  x -= 255;
-		if(y < 0)  y += 256;
-		if(y > 255) y -= 256;
-		return mapData[y * 256 + x];
+		if(x < 0)  x += width;
+		if(x >= width)  x -= width;
+		if(y < 0)  y += height;
+		if(y >= height) y -= height;
+		return mapData[y * width + x];
 	}
 	
 	public byte getZone(int x, int y)
 	{
-		if(x < 0)  x += 256;
-		if(x > 255)  x -= 255;
-		if(y < 0)  y += 256;
-		if(y > 255) y -= 256;
-		return zoneData[y * 256 + x];
+		if(x < 0)  x += width;
+		if(x >= width)  x -= width;
+		if(y < 0)  y += height;
+		if(y >= height) y -= height;
+		return zoneData[y * width + x];
 	}
 	
 	public void putTerrain(int x, int y, byte v)
 	{
 		//System.out.println("Setting " + x + "," + y + " to " + v);
-		if(x < 0)  x += 256;
-		if(x > 255)  x -= 255;
-		if(y < 0)  y += 256;
-		if(y > 255) y -= 256;
-		mapData[y * 256 + x] = v;
+		if(x < 0)  x += width;
+		if(x >= width)  x -= width;
+		if(y < 0)  y += height;
+		if(y >= height) y -= height;
+		mapData[y * width + x] = v;
 	}
 	
 	public void putZone(int x, int y, byte v)
 	{
-		if(x < 0)  x += 256;
-		if(x > 255)  x -= 255;
-		if(y < 0)  y += 256;
-		if(y > 255) y -= 256;
-		mapData[y * 256 + x] = v;
+		if(x < 0)  x += width;
+		if(x >= width)  x -= width;
+		if(y < 0)  y += height;
+		if(y >= height) y -= height;
+		mapData[y * width + x] = v;
 	}
 	
 	private byte getAvg(byte b1, byte b2)
@@ -8337,20 +8616,20 @@ class Map
 		int yy = p.y;
 		xx--;
 		if(xx < 0)
-			xx = 255;
+			xx = width - 1;
 		rv.add(new Point(xx, yy));
 		xx += 2;
-		if(xx >= 256)
-			xx -= 256;
+		if(xx >= width)
+			xx -= width;
 		rv.add(new Point(xx, yy));
 		xx = p.x;
 		yy--;
 		if(yy < 0)
-			yy = 255;
+			yy = height - 1;
 		rv.add(new Point(xx, yy));
 		yy += 2;
-		if(yy >= 256)
-			yy -= 256;
+		if(yy >= height)
+			yy -= height;
 		rv.add(new Point(xx, yy));
 		return rv;
 	}
@@ -8362,21 +8641,21 @@ class Map
 		int yy = p.y;
 		xx--;
 		if(xx < 0)
-			xx = 255;
-		rv[0] = mapData[yy * 256 + xx];
+			xx = width - 1;
+		rv[0] = mapData[yy * width + xx];
 		xx += 2;
-		if(xx >= 256)
-			xx -= 256;
-		rv[1] = mapData[yy * 256 + xx];
+		if(xx >= width)
+			xx -= width;
+		rv[1] = mapData[yy * width + xx];
 		xx = p.x;
 		yy--;
 		if(yy < 0)
-			yy = 255;
-		rv[2] = mapData[yy * 256 + xx];
+			yy = height - 1;
+		rv[2] = mapData[yy * width + xx];
 		yy += 2;
-		if(yy >= 256)
-			yy -= 256;
-		rv[3] = mapData[yy * 256 + xx];
+		if(yy >= height)
+			yy -= height;
+		rv[3] = mapData[yy * width + xx];
 		return rv;
 	}
 	
@@ -8391,17 +8670,17 @@ class Map
 		{
 			yf = yy + i;
 			if(yf < 0)
-				yf = 255;
-			if(yf > 255)
-				yf -= 255;
+				yf = height - 1;
+			if(yf >= height)
+				yf -= height;
 			for(int j = -1; j <= 1; j++)
 			{
 				xf = xx + j;
 				if(xf < 0)
-					xf = 255;
-				if(xf > 255)
-					xf -= 255;
-				rv[c] = mapData[yf * 256 + xf];
+					xf = width - 1;
+				if(xf >= width)
+					xf -= width;
+				rv[c] = mapData[yf * width + xf];
 				c++;
 			}
 		}
@@ -8458,19 +8737,19 @@ class Map
 	{
 		int failures = 0;
 		olapWith = -1;
-		while(failures < 300)
+		while(failures < 1000)
 		{
-			int x = (int) ((UltimaRando.rand() * (200 - seaPad)) + seaPad);
-			int y = (int) ((UltimaRando.rand() * (200 - seaPad)) + seaPad);
+			int x = (int) ((UltimaRando.rand() * (width - maxLen - seaPad)) + seaPad);
+			int y = (int) ((UltimaRando.rand() * (height - maxLen - seaPad)) + seaPad);
 			if(onCenterLine)
 				y = x;
 			int lspr = maxLen - minLen + 1;
 			int dx = (int) (UltimaRando.rand() * lspr + minLen);
 			int dy = (int) (UltimaRando.rand() * lspr + minLen);
 			
-			if(x + dx > 255)
+			if(x + dx >= width)
 				continue;
-			if(y + dy > 255)
+			if(y + dy >= height)
 				continue;
 			
 			Rectangle zn = new Rectangle(x, y, dx, dy);
@@ -8584,7 +8863,7 @@ class Map
 		boolean[] selected = new boolean[mapData.length];
 		ArrayList<Point> toLand = new ArrayList<Point>();
 		toLand.add(origin);
-		selected[origin.x + 256 * origin.y] = true;
+		selected[origin.x + width * origin.y] = true;
 		int wp = 0;
 		while(wp < toLand.size())
 		{
@@ -8593,12 +8872,12 @@ class Map
 			for(int i = 0; i < 4; i++)
 			{
 				Point wn = sp.get(i);
-				byte b = mapData[wn.x + 256 * wn.y];
-				boolean c = selected[wn.x + 256 * wn.y];
+				byte b = mapData[wn.x + width * wn.y];
+				boolean c = selected[wn.x + width * wn.y];
 				if(b >= 10 && b != 13 && c == false)
 				{
 					toLand.add(wn);
-					selected[wn.x + 256 * wn.y] = true;
+					selected[wn.x + width * wn.y] = true;
 				}
 			}
 			wp++;
@@ -8606,7 +8885,7 @@ class Map
 		return toLand;
 	}
 	
-	private ArrayList<MapZone> makeZonesHM()
+	private ArrayList<MapZone> makeZonesHM()  //make zones using a height map - not used
 	{
 		ArrayList<Rectangle> currZones = noOlapRects(10, 15, 30, 50, 0);
 		//int[] zoneCounts = {3,2,1,1};
@@ -8686,7 +8965,13 @@ class Map
 	
 	private ArrayList<MapZone> makeZones()
 	{
-		ArrayList<Rectangle> currZones = noOlapRects(9, 15, 30, 50, 0);
+		int[] szm = {10, 20, 30};
+		int[] szx = {20, 35, 50};
+		int[] mps = {128 * 128, 128 * 256, 256 * 256};
+		ArrayList<Rectangle> currZones = null; 
+		for(int i = 0; i < mps.length; i++)
+			if(width * height == mps[i])
+				currZones = noOlapRects(9, 15, szm[i], szx[i], 0);
 		//int[] zoneCounts = {3,2,1,1};
 		double[] types = {0.50, 0.75, 0.85, 1.00};
 		int[] zTypes = {1, 10, 13, 12};
@@ -8739,8 +9024,8 @@ class Map
 		}
 		System.out.println();
 		//System.out.println("There are " + finalZones.size() + " zones on the map:");
-		smoothMap(0, 0, 256, 256);
-		smoothMap(2,2,255,255);
+		smoothMap(0, 0, width, height);
+		smoothMap(2, 2, width - 1, height - 1);
 		
 		System.out.print("Z#" + finalZones.size());
 		return finalZones;
@@ -8769,11 +9054,11 @@ class Map
 		int count = 0;
 		byte val = 0;
 		ArrayList<Byte> out1 = new ArrayList<Byte>();
-		for(int yy = 0; yy < 256; yy++)
+		for(int yy = 0; yy < height; yy++)
 		{
-			for(int xx = 0; xx < 256; xx++)
+			for(int xx = 0; xx < width; xx++)
 			{
-				byte md = mapData[256 * yy + xx];
+				byte md = mapData[width * yy + xx];
 				if(collapseLand)
 				{
 					byte[] diff = {-9, -8, -7, -1, +1, +7, +8, +9};
@@ -8844,30 +9129,30 @@ class Map
 		for(int i = 0; i < list.size(); i++)
 		{
 			Point p = list.get(i);
-			if(accessData[p.x + p.y * 256] == 0)
+			if(accessData[p.x + p.y * width] == 0)
 			{
 				ArrayList<Point> ps = getSurrPoints(p);
 				for(int j = 0; j < ps.size(); j++)
 				{
 					Point pa = ps.get(j);
-					byte bb = accessData[pa.x + pa.y * 256];
+					byte bb = accessData[pa.x + pa.y * width];
 					if(bb > 0 && bb != 8)
 					{
-						accessData[p.x + p.y * 256] = bb;
+						accessData[p.x + p.y * width] = bb;
 						break;
 					}
 				}
-				if(accessData[p.x + p.y * 256] == 0)
+				if(accessData[p.x + p.y * width] == 0)
 				{
 					System.out.print("f" + desc + i + ";");
 					rv = false;
 				}
 			}
-			byte t = mapData[p.x + p.y * 256];
+			byte t = mapData[p.x + p.y * width];
 			if(t != type)
 			{
 				System.out.print("+" + desc +  i + ";");
-				mapData[p.x + p.y * 256] = (byte) type;
+				mapData[p.x + p.y * width] = (byte) type;
 			}
 		}
 		if(rv == false)
@@ -8993,7 +9278,7 @@ class Map
 			for(int i = 0; i < walkTo.size(); i++)
 			{
 				Point p2 = walkTo.get(i);
-				access[p2.x + 256 * p2.y] |= 4;
+				access[p2.x + width * p2.y] |= 4;
 			}
 			return;
 		}
@@ -9023,7 +9308,7 @@ class Map
 				for(int j = 0; j < walkTo.size(); j++)
 				{
 					Point p3 = walkTo.get(j);
-					access[p3.x + 256 * p3.y] |= 4;
+					access[p3.x + width * p3.y] |= 4;
 				}
 				return;
 			}
@@ -9059,7 +9344,7 @@ class Map
 			for(int j = 0; j < walkTo.size(); j++)
 			{
 				Point p3 = walkTo.get(j);
-				access[p3.x + 256 * p3.y] |= 4;
+				access[p3.x + width * p3.y] |= 4;
 			}
 			return;
 		}
@@ -9073,7 +9358,7 @@ class Map
 		boolean[] selected = new boolean[access.length];
 		ArrayList<Point> fromWater = new ArrayList<Point>();
 		fromWater.add(origin);
-		selected[origin.x + 256 * origin.y] = true;
+		selected[origin.x + width * origin.y] = true;
 		int wp = 0;
 		while(wp < fromWater.size())
 		{
@@ -9082,12 +9367,12 @@ class Map
 			for(int i = 0; i < 4; i++)
 			{
 				Point wn = sp.get(i);
-				byte b = mapData[wn.x + 256 * wn.y];
-				boolean c = selected[wn.x + 256 * wn.y];
+				byte b = mapData[wn.x + width * wn.y];
+				boolean c = selected[wn.x + width * wn.y];
 				if((b == 1 || b == 3) && c == false)
 				{
 					fromWater.add(wn);
-					selected[wn.x + 256 * wn.y] = true;
+					selected[wn.x + width * wn.y] = true;
 				}
 			}
 			wp++;
@@ -9102,7 +9387,7 @@ class Map
 		if(qp == -1)
 		{
 			pts.add(origin);
-			access[origin.y * 256 + origin.x] = 2;
+			access[origin.y * width + origin.x] = 2;
 			return true;
 		}
 		
@@ -9115,12 +9400,12 @@ class Map
 		for(int i = 0; i < sp.size(); i++)
 		{
 			Point p2 = sp.get(i);
-			if(access[p2.y * 256 + p2.x] != 0)
+			if(access[p2.y * width + p2.x] != 0)
 				continue;
-			byte b = mapData[p2.y * 256 + p2.x];
+			byte b = mapData[p2.y * width + p2.x];
 			if(b == 7 || b == 13)
 			{
-				access[p2.y * 256 + p2.x] = 8;
+				access[p2.y * width + p2.x] = 8;
 				continue;
 			}
 			if(b < 10)
@@ -9130,14 +9415,14 @@ class Map
 				for(int j = 0; j < wps.size(); j++)
 				{
 					Point pp = wps.get(j);
-					if(mapData[pp.x + 256 * pp.y] == 1)
+					if(mapData[pp.x + width * pp.y] == 1)
 					{
 						good = true;
 						dwa[dwi] = true;
 						for(int k = 0; k < pts.size(); k++)
 						{
 							Point pl = pts.get(k);
-							access[pl.x + 256 * pl.y] |= 1;
+							access[pl.x + width * pl.y] |= 1;
 						}
 						break;
 					}
@@ -9147,20 +9432,20 @@ class Map
 					Point pp = wps.get(j);
 					if(good)
 					{
-						access[pp.x + 256 * pp.y] = 1;
+						access[pp.x + width * pp.y] = 1;
 						pts.add(pp);
 					}
 					else
-						access[pp.x + 256 * pp.y] = 8;
+						access[pp.x + width * pp.y] = 8;
 				}
 			}
 			else
 			{
-				access[p2.y * 256 + p2.x] |= 2;  //walk access
+				access[p2.y * width + p2.x] |= 2;  //walk access
 				if(b == 10)
-					access[p2.y * 256 + p2.x] |= 4;  //balloon access
+					access[p2.y * width + p2.x] |= 4;  //balloon access
 				if(dwa[dwi])
-					access[p2.y * 256 + p2.x] |= 1;  //deep water access
+					access[p2.y * width + p2.x] |= 1;  //deep water access
 				pts.add(p2);
 			}
 		}
@@ -9222,12 +9507,12 @@ class Map
 			while(true)
 			{
 				dist++;
-				xx = ((p1.x + (dist * dx)) + 256) % 256;
-				yy = ((p1.y + (dist * dy)) + 256) % 256;
-				byte b = accessData[xx + 256 * yy];
+				xx = ((p1.x + (dist * dx)) + width) % width;
+				yy = ((p1.y + (dist * dy)) + height) % height;
+				byte b = accessData[xx + width * yy];
 				if((b & reqAccess) > 0)
 					break;
-				if(dist >= 256)  
+				if(dist >= Math.max(width, height))  
 					break;
 			}
 			if(dist < minDist)
@@ -9246,13 +9531,13 @@ class Map
 		{
 			Point p = area.get(i);
 			if(p.x > pb.x)
-				xx = Math.min(Math.abs(pb.x - p.x), Math.abs((pb.x + 256) - p.x));
+				xx = Math.min(Math.abs(pb.x - p.x), Math.abs((pb.x + width) - p.x));
 			else
-				xx = Math.min(Math.abs(pb.x - p.x), Math.abs((p.x + 256) - pb.x));
+				xx = Math.min(Math.abs(pb.x - p.x), Math.abs((p.x + width) - pb.x));
 			if(p.y > pb.y)
-				yy = Math.min(Math.abs(pb.y - p.y), Math.abs((pb.y + 256) - p.y));
+				yy = Math.min(Math.abs(pb.y - p.y), Math.abs((pb.y + height) - p.y));
 			else
-				yy = Math.min(Math.abs(pb.y - p.y), Math.abs((p.y + 256) - pb.y));
+				yy = Math.min(Math.abs(pb.y - p.y), Math.abs((p.y + height) - pb.y));
 			dist = xx + yy;
 			if(dist < minDist)
 			{
@@ -9274,7 +9559,7 @@ class Map
 		//byte connected = 0;
 		byte near = getTerrain(pb.x, pb.y);
 		Point pc = normalizePoint(pb);
-		byte nacc = accessData[pc.x + 256 * pc.y];
+		byte nacc = accessData[pc.x + width * pc.y];
 		ArrayList<Point> connection = new ArrayList<Point>();
 		if(ww > hh)
 		{
@@ -9283,7 +9568,7 @@ class Map
 				for(int y = 0; y <= hh; y++)
 				{
 					byte b = getTerrain(x + xx, y + yy);
-					int vv = ((x + xx) % 256) + 256 * ((y + yy) % 256);
+					int vv = ((x + xx) % width) + width * ((y + yy) % height);
 					if(b == 7 && near < 10)  //blocked by shoal
 					{
 						b = 3;
@@ -9314,7 +9599,7 @@ class Map
 				for(int x = 0; x <= ww; x++)
 				{
 					byte b = getTerrain(x + xx, y + yy);
-					int vv = ((x + xx) % 256) + 256 * ((y + yy) % 256);
+					int vv = ((x + xx) % width) + width * ((y + yy) % height);
 					if(b == 7 && near < 10)
 					{
 						b = 3;
@@ -9353,11 +9638,11 @@ class Map
 			for(int i = 0; i < area.size(); i++)
 			{
 				Point p = area.get(i);
-				accessData[p.x + 256 * p.y] |= nacc;
+				accessData[p.x + width * p.y] |= nacc;
 				if(getTerrain(p.x, p.y) >= 10)
-					accessData[p.x + 256 * p.y] |= 2;
+					accessData[p.x + width * p.y] |= 2;
 				else
-					accessData[p.x + 256 * p.y] |= 1;
+					accessData[p.x + width * p.y] |= 1;
 			}
 		}
 		Point[] rv = {pa, pb};
@@ -9528,7 +9813,7 @@ class Map
 		for(int i = 0; i < moongates.size(); i++)
 		{
 			Point p = moongates.get(i);
-			if((access[p.y * 256 + p.x] & 2) == 0)
+			if((access[p.y * width + p.x] & 2) == 0)
 			{
 				//System.out.println("Moongate # " + i + " isn't walk accessable; opening access");
 				System.out.print("OM" + i);
@@ -9548,7 +9833,7 @@ class Map
 		for(int i = 0; i < allPoints.size(); i++)
 		{
 			Point p = allPoints.get(i);
-			byte acc = access[p.y * 256 + p.x];
+			byte acc = access[p.y * width + p.x];
 			if(acc == 0 || acc == 8)
 			{
 				//System.out.println("Generic point # " + i + "(" + p + ") isn't accessable; opening access");
@@ -9562,7 +9847,7 @@ class Map
 		for(int i = 0; i < allPoints.size(); i++)
 		{
 			Point p = allPoints.get(i);
-			byte acc = access[p.y * 256 + p.x];
+			byte acc = access[p.y * width + p.x];
 			if(acc > 0 && acc < 8)
 			{
 				allPoints.remove(i);
@@ -9658,11 +9943,12 @@ class Map
 			Point fp = new Point(ff.cx + dx, ff.cy + dy);
 			if(getTerrain(fp.x, fp.y) == 1)
 			{
-				fp.x += 256;
+				/*fp.x += 256;
 				fp.x %= 256;
 				fp.y += 256;
-				fp.y %= 256;
-				if(accessData[fp.x + 256 * fp.y] != 1)
+				fp.y %= 256;*/
+				fp = normalizePoint(fp);
+				if(accessData[fp.x + width * fp.y] != 1)
 					continue;
 				//putTerrain(fp.x, fp.y, (byte) 14);
 				//searchSpots.add(fp);
@@ -9673,11 +9959,11 @@ class Map
 		}
 		//the hard way
 		ArrayList<Point> pts = new ArrayList<Point>();
-		for(int i = 0; i < 256; i++)
+		for(int i = 0; i < height; i++)
 		{
-			for(int j = 0; j < 256; j++)
+			for(int j = 0; j < width; j++)
 			{
-				if(mapData[256 * i + j] == 1)
+				if(mapData[width * i + j] == 1)
 					pts.add(new Point(j, i));
 			}
 		}
@@ -9704,7 +9990,7 @@ class Map
 		for(int i = 0; i < dungeons.size(); i++)  //front load dungeons with balloon access only
 		{
 			Point p = dungeons.get(i);
-			if(accessData[p.x + p.y * 256] == 4)
+			if(accessData[p.x + p.y * width] == 4)
 			{
 				d2.add(p);
 				ord.add(i);
@@ -9713,7 +9999,7 @@ class Map
 		for(int i = 0; i < dungeons.size(); i++)
 		{
 			Point p = dungeons.get(i);
-			if(accessData[p.x + p.y * 256] != 4)
+			if(accessData[p.x + p.y * width] != 4)
 			{
 				d2.add(p);
 				ord.add(i);
@@ -9756,7 +10042,7 @@ class Map
 	{
 		//System.out.println("Testing " + nr.toString() + " for POI collision");
 		Point p = new Point(nr.x, nr.y);
-		normalizePoint(p);
+		p = normalizePoint(p);
 		nr.x = p.x;
 		nr.y = p.y;
 		for(int j = 0; j < poi.size(); j++)
@@ -9977,10 +10263,11 @@ class Map
 		for(int i = 0; i < rv.size(); i++)  //normalize the locations
 		{
 			Point p = rv.get(i);
-			if(p.x < 0) p.x += 256;
+			/*if(p.x < 0) p.x += 256;
 			if(p.x > 255) p.x -= 255;
 			if(p.y < 0) p.y += 256;
-			if(p.y > 255) p.y -= 255;
+			if(p.y > 255) p.y -= 255;*/
+			p = normalizePoint(p);
 			putTerrain(p.x, p.y, (byte) 20);  //one last sure placement
 		}
 		System.out.print(";");
@@ -10022,7 +10309,7 @@ class Map
 		}
 		while(abyssOK.size() == 0)  //at this point there are only 3 other POI so this should not go infinite
 		{
-			Rectangle vi = noOlapRect(features, 12, 30, 0, true);
+			Rectangle vi = noOlapRect(features, 12, 20, 0, true);
 			MapZone zn = new MapZone(vi, (byte) 8, 0);
 			if(ensurePOIUnique(vi, false) == false)
 				continue;
@@ -10267,10 +10554,10 @@ class Map
 		return rv;
 	}
 	
-	public static Point normalizePoint(Point p)
+	public Point normalizePoint(Point p)
 	{
-		p.x = (p.x + 256) % 256;
-		p.y = (p.y + 256) % 256;
+		p.x = (p.x + width) % width;
+		p.y = (p.y + height) % height;
 		return p;
 	}
 	
@@ -10419,20 +10706,20 @@ class Map
 								toSea.add(px);
 								int point = 0;
 								boolean[] v = new boolean[mapData.length];
-								v[px.y * 256 + px.x] = true;
+								v[px.y * width + px.x] = true;
 								while(true)
 								{
 									Point p = toSea.get(point);
-									if(mapData[p.y * 256 + p.x] < 7)
+									if(mapData[p.y * width + p.x] < 7)
 										break;
 									ArrayList<Point> ta = getSurrPoints(p);
 									for(int j = 0; j < ta.size(); j++)
 									{
 										Point tj = ta.get(j);
-										if(v[tj.y * 256 + tj.x] == false)
+										if(v[tj.y * width + tj.x] == false)
 										{
 											toSea.add(tj);
-											v[tj.y * 256 + tj.x] = true;
+											v[tj.y * width + tj.x] = true;
 										}
 									}
 									point++;
@@ -10441,7 +10728,7 @@ class Map
 								for(int k = 0; k < 4; k++)
 								{
 									Point p = landAnchor.get(k);
-									if(mapData[p.y * 256 + p.x] >= 10)
+									if(mapData[p.y * width + p.x] >= 10)
 									{
 										px = p;
 										//initPoss |= ( 1 << i);
@@ -10488,10 +10775,11 @@ class Map
 		for(int i = 0; i < rv.size(); i++)  //normalize the locations
 		{
 			Point p = rv.get(i);
-			if(p.x < 0) p.x += 256;
+			p = normalizePoint(p);
+			/*if(p.x < 0) p.x += 256;
 			if(p.x > 255) p.x -= 255;
 			if(p.y < 0) p.y += 256;
-			if(p.y > 255) p.y -= 255;
+			if(p.y > 255) p.y -= 255;*/
 			putTerrain(p.x, p.y, (byte) 20);  //one last sure placement
 			//System.out.println("Placed normal town at " + p.x + ", " + p.y);
 		}
@@ -10527,7 +10815,7 @@ class Map
 		System.out.print("dg");
 		for(int i = 0; i < 8; i++)
 		{
-			System.out.print(i);
+			System.out.print(i + "ok" + okFeatures.size());
 			if(okFeatures.size() == 0)
 			{
 				//grab a mountain zone
@@ -10632,10 +10920,31 @@ class Map
 			}
 		}
 		
+		for(int i = rv.size(); i < 8; i++)
+		{
+			//we need to place a dungeon on the outside edge of a mountain zone
+			Point fdp = null;
+			int failures = 0;
+			do
+			{
+				int r = (int) (Math.random() * mtnZones.size());
+				MapZone mz = mtnZones.get(r);
+				fdp = mz.selectRandomEdge();
+				failures++;
+				if(failures > 300)
+					break;
+			}   while(fdp == null || ensurePOIUnique(new Rectangle(fdp.x - 1, fdp.y - 1, 3, 3), true) == false);
+			if(fdp != null)
+			{
+				System.out.print("P");
+				rv.add(fdp);
+			}
+		}
+		
 		for(int i = 0; i < rv.size(); i++)  //normalize the locations
 		{
 			Point p = rv.get(i);
-			normalizePoint(p);
+			p = normalizePoint(p);
 			//System.out.println("Placing dungeon #" + i + " at " + p.x + "," + p.y);
 			putTerrain(p.x, p.y, (byte) 21);  //place the dungeon
 			ArrayList<Point> dps = getSurrPoints(p);
@@ -10720,15 +11029,18 @@ class Map
 		for(int i = 0; i < 8; i++)  //there are 8 shrines; the Shrine of Spirituality isn't on the map but the island shrine is
 		{
 			if(okFeatures.size() == 0)
+			{
+				System.out.print("Z");
 				break;
-			System.out.print(i);
+			}
+			System.out.print(i + "ok" + okFeatures.size());
 			int failures = 0;
 			MapZone sz = null;
 			int fsel = -1;
 			while(failures < 20)
 			{
 				double r = UltimaRando.rand();
-				fsel = (int) (r * okFeatures.size());
+				fsel = (int) (r * okFeatures.size());  //grab a feature
 				sz = okFeatures.get(fsel);
 				boolean isUnique = true;
 				for(int j = i - 1; j >= 0; j--)
@@ -10748,6 +11060,7 @@ class Map
 					{
 						r = UltimaRando.rand() * (i - 1);
 						vtZones[(int) r] = -1;
+						System.out.print("R");
 						failures = 0;
 					}
 				}
@@ -10802,10 +11115,10 @@ class Map
 		for(int i = 0; i < rv.size(); i++)  //normalize the locations
 		{
 			Point p = rv.get(i);
-			if(p.x < 0) p.x += 256;
-			if(p.x > 255) p.x -= 255;
-			if(p.y < 0) p.y += 256;
-			if(p.y > 255) p.y -= 255;
+			if(p.x < 0) p.x += width;
+			if(p.x >= width) p.x -= width;
+			if(p.y < 0) p.y += height;
+			if(p.y >= height) p.y -= height;
 			//System.out.println("Placing shrine #" + i + " at " + p.x + "," + p.y);
 			putTerrain(p.x, p.y, (byte) 22);  //place the shrine
 			if(i == 7)  //the shrine of Humility is special and has a special surrounding area
@@ -10909,25 +11222,25 @@ class Map
 			pc = normalizePoint(pc);
 			Point pa = null;
 			boolean[] v = new boolean[mapData.length];
-			if(mapData[pc.y * 256 + pc.x] >= 10)
+			if(mapData[pc.y * width + pc.x] >= 10)
 			{
 				ArrayList<Point> toSea = new ArrayList<Point>();
 				toSea.add(pc);
 				int point = 0;
-				v[pc.y * 256 + pc.x] = true;
+				v[pc.y * width + pc.x] = true;
 				while(true)
 				{
 					Point p = toSea.get(point);
-					if(mapData[p.y * 256 + p.x] < 10)
+					if(mapData[p.y * width + p.x] < 10)
 						break;
 					ArrayList<Point> ta = getSurrPoints(p);
 					for(int j = 0; j < ta.size(); j++)
 					{
 						Point tj = ta.get(j);
-						if(v[tj.y * 256 + tj.x] == false)
+						if(v[tj.y * width + tj.x] == false)
 						{//if(!toSea.contains(ta.get(j)))
 							toSea.add(ta.get(j));
-							v[tj.y * 256 + tj.x] = true;
+							v[tj.y * width + tj.x] = true;
 						}
 					}
 					point++;
@@ -10936,7 +11249,7 @@ class Map
 				for(int k = 0; k < 4; k++)
 				{
 					Point p = landAnchor.get(k);
-					if(mapData[p.y * 256 + p.x] >= 10)
+					if(mapData[p.y * width + p.x] >= 10)
 					{
 						pa = p;
 						//initPoss |= ( 1 << i);
@@ -10950,20 +11263,20 @@ class Map
 				ArrayList<Point> toLand = new ArrayList<Point>();
 				toLand.add(pc);
 				int point = 0;
-				v[pc.y * 256 + pc.x] = true;
+				v[pc.y * width + pc.x] = true;
 				while(true)
 				{
 					Point p = toLand.get(point);
-					if(mapData[p.y * 256 + p.x] >= 10)
+					if(mapData[p.y * width + p.x] >= 10)
 						break;
 					ArrayList<Point> ta = getSurrPoints(p);
 					for(int j = 0; j < ta.size(); j++)
 					{
 						Point tj = ta.get(j);
-						if(v[tj.y * 256 + tj.x] == false)
+						if(v[tj.y * width + tj.x] == false)
 						{//if(!toSea.contains(ta.get(j)))
 							toLand.add(ta.get(j));
-							v[tj.y * 256 + tj.x] = true;
+							v[tj.y * width + tj.x] = true;
 						}
 					}
 					point++;
@@ -11064,12 +11377,20 @@ class Map
 	
 	private ArrayList<MapZone> makeFeatures(int forestZones, int mtnZones)
 	{
-		int nFeatures = (int) ((UltimaRando.rand() * 25) + 50);
+		int[] baseF = {25, 40, 55};
+		int[] randF = {15, 20, 25};
+		int[] msz = {128 * 128, 256 * 128, 256 * 256};
+		int s = 0;
+		for(int i = 0; i < msz.length; i++)
+			if(msz[i] == width * height)
+				s = i;
+		int nFeatures = (int) ((UltimaRando.rand() * randF[s]) + baseF[s]);
 		ArrayList<Rectangle> features = new ArrayList<Rectangle>(nFeatures);
 				//noOlapRects(50, 75, 12, 30, 1);
 		ArrayList<MapZone> rv = new ArrayList<MapZone>(nFeatures);
 		double[] landFeatures = {0.2, 0.4, 0.6, 0.7, 0.9, 1.0};  //shrub, forest, rdelta, mountain, swamp, lake
-		int[] reqLandF = {2, 2 - 2 * forestZones, 8, 4 - mtnZones, 3, 1};
+		int[] reqLandF = {2, 2 - 2 * forestZones, 6, 4 - mtnZones, 3, 1};
+		
 		double[] waterFeatures = {0.3, 0.6, 0.8, 1.0}; //island, archipelago, volc island, shoal
 		int reqWatrF = 3;
 		int waterF = 0;
@@ -11079,9 +11400,9 @@ class Map
 		for(int i = 0; i < nFeatures; i++)
 		{
 			if(waterF > reqWatrF)
-				features.add(noOlapRect(rv, 12, 30, 1, false));
+				features.add(noOlapRect(rv, 12, 20, 1, false));
 			else
-				features.add(noOlapRect(rv, 12, 30, 0, false));
+				features.add(noOlapRect(rv, 12, 12, 0, false));
 			MapZone mz = new MapZone(features.get(i), (byte) 0, -1);
 			double ft = UltimaRando.rand();
 			if(mz.majorityIsLand())
@@ -11147,6 +11468,12 @@ class Map
 			}
 		}
 		System.out.print("F#" + rv.size());
+		for(int i = 0; i < rv.size(); i++)
+		{
+			MapZone mz = rv.get(i);
+			if(mz.area == null || mz.filled.size() == 0)
+				System.out.print("EF" + i);
+		}
 		return rv;
 	}
 
@@ -11176,6 +11503,7 @@ class MapPanel extends JPanel implements MouseListener, MouseMotionListener
 	
 	MapWindow ref;
 	int left, right, top, bottom;
+	int maxr, maxb;
 	//int absX, absY;
 	
 	public MapPanel(byte[] ts, HashMap<Integer, Descriptor> ch, MapWindow w)
@@ -11189,6 +11517,13 @@ class MapPanel extends JPanel implements MouseListener, MouseMotionListener
 		right = left + 127;
 		top = 0;
 		bottom = top + 127;
+		maxr = maxb = 255;
+		if(w.mapRef != null)
+		{
+			maxr = w.mapRef.width - 1;
+			maxb = w.mapRef.height - 1;
+		}
+		
 		addMouseMotionListener(this);
 	}
 	
@@ -11205,7 +11540,7 @@ class MapPanel extends JPanel implements MouseListener, MouseMotionListener
 		{
 			for(int j = left; j <= right; j++)
 			{
-				int t = tiles[(i << 8) + j] & 63;
+				int t = tiles[(i * (maxr + 1)) + j] & 63;
 				/*if(t < 0)
 				{
 					System.out.println("WTF");
@@ -11236,7 +11571,7 @@ class MapPanel extends JPanel implements MouseListener, MouseMotionListener
 		// TODO Auto-generated method stub
 		int x = (e.getX() >> 2) + left;
 		int y = (e.getY() >> 2) + top;
-		byte t = tiles[(y << 8) + x];
+		byte t = tiles[(y * (maxr + 1)) + x];
 		ref.selectTile(t, x, y);
 		//System.out.println("X:" + x + " Y:" + y + " T:" + t);
 	}
@@ -11273,7 +11608,7 @@ class MapPanel extends JPanel implements MouseListener, MouseMotionListener
 			left--;
 			right--;
 		}
-		if(e.getX() > 452 && right < 255)
+		if(e.getX() > 452 && right < maxr)
 		{
 			left++;
 			right++;
@@ -11283,7 +11618,7 @@ class MapPanel extends JPanel implements MouseListener, MouseMotionListener
 			top--;
 			bottom--;
 		}
-		if(e.getY() > 452 && bottom < 255)
+		if(e.getY() > 452 && bottom < maxb)
 		{
 			top++;
 			bottom++;
@@ -11398,12 +11733,14 @@ class MapWindow extends JFrame implements ActionListener
 	Color[] colors;
 	ArrayList<Rectangle> poi;
 	ArrayList<POI> poiList;
+	Map mapRef;
 	
 	Timer tim;
 	private byte[] visData;
 	
 	MapWindow(byte[] md, boolean useOrigData)
 	{
+		mapRef = null;
 		mapData = md;
 		colorMap = new HashMap<Integer, Descriptor>();
 		if(useOrigData)
@@ -11412,6 +11749,27 @@ class MapWindow extends JFrame implements ActionListener
 			initOutputDescriptors();
 		sp = new SidePanel(colorMap, this);
 		mp = new MapPanel(md, colorMap, this);
+		getContentPane().add(sp, BorderLayout.WEST);
+		getContentPane().add(mp, BorderLayout.EAST);
+		Color[] cc = {Color.BLUE, Color.CYAN, Color.YELLOW, Color.MAGENTA, Color.RED, Color.ORANGE, Color.GREEN};
+		colors = cc;
+		tim = new Timer(100, this);
+		tim.start();
+		setSize(850, 600);
+		setVisible(true);
+	}
+	
+	MapWindow(Map m, boolean useOrigData)
+	{
+		mapRef = m;
+		mapData = m.generateFinalMap();
+		colorMap = new HashMap<Integer, Descriptor>();
+		if(useOrigData)
+			initDescriptors();
+		else
+			initOutputDescriptors();
+		sp = new SidePanel(colorMap, this);
+		mp = new MapPanel(mapData, colorMap, this);
 		getContentPane().add(sp, BorderLayout.WEST);
 		getContentPane().add(mp, BorderLayout.EAST);
 		Color[] cc = {Color.BLUE, Color.CYAN, Color.YELLOW, Color.MAGENTA, Color.RED, Color.ORANGE, Color.GREEN};
@@ -11739,7 +12097,21 @@ class FlagPanel extends JPanel implements ActionListener
 			int hv = Integer.parseInt(String.valueOf(hybridFlag.charAt(1)));
 			int n = Integer.parseInt(String.valueOf(flags[i].charAt(1)));
 			if(checks[i].isSelected())
+			{
 				hv += n;
+				int j = checks.length;
+				while(hv > 9)  //if you overselect then unselect down to include n
+				{
+					j--;
+					if(i == j)
+						continue;
+					if(checks[j].isSelected())
+					{
+						checks[j].setSelected(false);
+						hv -= Integer.parseInt(String.valueOf(flags[j].charAt(1)));
+					}
+				}
+			}
 			else
 			{
 				hv -= n;
@@ -11761,6 +12133,10 @@ class FlagPanel extends JPanel implements ActionListener
 			if(checks[i].isSelected())
 			{
 				rw.setFlag(flags[i]);
+				if(flags[i].equals("Z"))  //this flag changes the text of 
+				{
+					rw.setSmallMapSize(true);
+				}
 				if(!multiSelect)
 				{
 					for(int j = 0; j < checks.length; j++)
@@ -11778,6 +12154,8 @@ class FlagPanel extends JPanel implements ActionListener
 			else
 			{
 				rw.clearFlag(flags[i]);
+				if(flags[i].equals("Z"))
+					rw.setSmallMapSize(false);
 			}
 		}
 	}
@@ -11838,6 +12216,7 @@ class RandoWindow extends JFrame implements ActionListener
 			{
 				nr = rom.randomize(flags, outFile);
 				outFile = nr.filename;
+				System.out.println(nr.getFinalSearchLocData());
 				/*long ll = Long.parseLong(inputLines[0].txt.getText());
 				UltimaRando.setSeed(ll);
 				rom = new NESRom(fname);
@@ -11923,6 +12302,21 @@ class RandoWindow extends JFrame implements ActionListener
 		setVisible(true);
 	}
 	
+	public void setSmallMapSize(boolean small) 
+	{
+		// TODO Auto-generated method stub
+		for(int i = 0; i < opts.get(0).checks.length; i++)
+		{
+			JCheckBox bx = opts.get(0).checks[i];
+			String str = "";
+			if(small)
+				str = "With " + String.valueOf(i * 3) + " tiles of sea on each border";
+			else
+				str = "With " + String.valueOf(i * 5) + " tiles of sea on each border";
+			bx.setText(str);
+		}
+	}
+
 	private void initFlags(String fl) 
 	{
 		String currFlag = "";
@@ -11974,11 +12368,14 @@ class RandoWindow extends JFrame implements ActionListener
 					if(fp.flags[j].equals(fl))
 					{
 						fp.checks[j].setSelected(true);
+						if(a == 'Z')
+							setSmallMapSize(true);
 						return;
 					}
 				}
 			}
 		}
+		
 	}
 
 	private String loadTextFile(String tf)
@@ -12063,8 +12460,8 @@ class RandoWindow extends JFrame implements ActionListener
 		String[] opt = {"Randomize Dungeon Layouts", 
 				 "Randomize Moongate Destinations", "Put Balloon next to Castle Britannia",
 				 "Randomize spells learned by Spell Teaching Villagers", 
-				 "Randomize Enemy Abilities", "Modify the View spell"};
-		String[] fl = {"D", "O", "B", "T", "A", "W"};
+				 "Randomize Enemy Abilities", "Modify the View spell", "Make the Overworld Map Smaller"};
+		String[] fl = {"D", "O", "B", "T", "A", "W", "Z"};
 		opts.add(new FlagPanel("General", opt, fl, true, false, this));
 		String[] shopt = {"Shuffle Shop Locations", "Enforce Shop Non-Compete", "Preserve Shop Types"};
 		String[] shfl = {"P0", "P1", "P2"};
@@ -12079,8 +12476,9 @@ class RandoWindow extends JFrame implements ActionListener
 		opts.add(new FlagPanel("Shorten Abyss", abyssM, abyssF, false, false, this));
 		
 		String[] op2 = {"Randomize Items at Search Locations", "Exclude the Fungus and Manroot search spots (recommended)",
-				"Include Avatar Equipment in shuffle", "Switch Avatar Equipment with a random Sword and Armor"};
-		String[] fla2 = {"R0", "R1", "R2", "R4"};
+				"Include Avatar Equipment in shuffle", "Switch Avatar Equipment with a random Sword and Armor",
+				"Randomize all items, including stones"};
+		String[] fla2 = {"R0", "R1", "R2", "R4", "R8"};
 		opts.add(new FlagPanel("Randomize Search Spot Items", op2, fla2, true, true, this));
 		String[] optE = {"Make an additional 25% of enemies tough", "Make an additional 50% of enemies tough",
 				         "Make all dungeon enemies tough"};
@@ -12740,7 +13138,7 @@ public class UltimaRando
 			}
 		}
 		int j = 0;
-		if((mode & 2) == 2)
+		if((mode & 2) == 2 || (mode & 8) == 8)  //shuffle avatar armor/weapon loc OR shuffle all items, including stones
 		{
 			//grab a non-rune item for 0,1
 			for(int i = 0; i < 2; i++)
@@ -12763,7 +13161,7 @@ public class UltimaRando
 				j++;
 			}
 		}
-		else if((mode & 4) == 4)
+		else if((mode & 4) == 4)  //substitutes the avatar armor and sword with a random armor and weapon
 		{
 			for(int i = 0; i < 2; i++)
 			{
@@ -12866,10 +13264,16 @@ public class UltimaRando
 		System.out.println("SHL:" + t);*/
 		//testAreaCenterLine();
 		setSeed((long) (Math.random() * Long.MAX_VALUE));  //this should be the only call to Math.random()
-		/*NESRom nr = null;
-		try
+		NESRom nr = null;
+		/*try
 		{
-			nr = new NESRom("C:\\Users\\AaronX\\Desktop\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
+			nr = new NESRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
+			nr = nr.randomize("M9Z1", "C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Deltima.nes");
+			if(nr.gameMap != null)
+			{
+				MapWindow mw = new MapWindow(nr.gameMap, true);
+				mw.setPOIList(nr.getPOIList());
+			}
 			/*nr = new NESRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\U4Rando.6003455369068555264.MO.nes");
 			System.out.println(nr.getFinalSearchLocData());
 			System.out.println(nr.getODLocations());
@@ -12879,10 +13283,12 @@ public class UltimaRando
 		/*}
 		catch(Exception ex)
 		{
+			System.err.println(ex.getMessage());
+			ex.printStackTrace(System.err);
 			return;
-		}
+		}*/
 		//testDungeonMake(nr);
-		TextFinder tf = new TextFinder(nr);
+		/*TextFinder tf = new TextFinder(nr);
 		byte[] x1 = tf.decompressSpokenBytesAt(11257);
 		System.out.println("Sextant 1:" + Arrays.toString(x1));
 		byte[] xx = tf.decompressSpokenBytesAt(13008);
