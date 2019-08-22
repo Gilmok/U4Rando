@@ -4,6 +4,10 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.4:
+  - You can now shrink the size of the overworld map from 256x256 to 128x128.
+  - You can now include the dungeon stones in item randomization.
+
 New in ver 1.31:
 - The source of the Neagate bug has been found and eliminated
 - The source of the forest walk bug has been found and eliminated
@@ -26,18 +30,11 @@ New in ver 1.2:
 - You can now randomize the spells given to you by spell-teaching villagers
 - The Black Stone of Humility can be picked up at anytime; no need to wait for new moons
 
-New in ver 1.1:
-- You can now start as Avatar
-- You can now add a sea border to generated maps (to make them smaller)
-- You can now include the chests at Empath Abbey and the Lyceaum for item shuffling
-- You can now randomize initially known spells, as well as specifically exclude Heal and Blink
-- You can now add gold to each gold chest
-- Also fixed a UI bug.
-- There is a known UI inconsistency where the flag order in the UI and the flag order in the generated ROM will be different.  This may be fixed in a future version.
-
 Known bugs and issues:
 - Do not pick up the Robe if your inventory is full, or the game will get very angry with you
 - A bug sometimes happens with visibility zones around Castle Britannia
 - Casting the Wind spell with a short spell list causes a known visual artifact
+- Shrinking the map causes a known "fog" effect at the edge of the map that causes your sprite to disappear (if you are the ship or walking around; this bug does not occur for the balloon).
+- Removing stones from dungeons causes the modified View spell to not find their associated stone rooms.
 
 Note: Some interest was expressed in the source code for this Rando.  I have uploaded the lastest java file.  I use launch4j to build the downloadable Windows executable; feel free to look at/play with/suggest bug fixes.
