@@ -4,6 +4,11 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.5:
+  - Useful Runes: Puts a stair case in each shrine to the corresponding stone in their respective dungeons
+  - Encounter room flags: You can randomize the encounter rooms and/or the encounter room enemies
+  - You can now turn off random encounters on the overworld.
+
 New in ver 1.4:
   - You can now shrink the size of the overworld map from 256x256 to 128x128.
   - You can now include the dungeon stones in item randomization.
