@@ -27,6 +27,10 @@ M#:  Randomize overworld map.  Begins with a sea border equal to 5 times # on ea
 
 D:  Randomize dungeon layouts.  Each dungeon has 8 floors and the randomizer only randomizes floors 2-7 of each dungeon *except* Hythloth, which remains the same. That is, floors 2-7 of each dungeon except Hythloth are shuffled and assigned to the other dungeons.  For example Deceit could be Deceit B1, Covetous B4, Destard B7, Shame B6, Deceit B3, Wrong B4, Despise B2, and Deceit B8.  Stairs are added and removed to get to each part of the dungeon as needed. 
 
+N:  Randomize dungeon encounter rooms.  A dungeon encounter room is a mandatory battle in a dungeon.  Mandatory encounters are randomly selected from a pool of rooms that have the same exits (for example, a room with east and west exits will be replaced with a random room with east and west exits).  The pool contains selected rooms from the Abyss.  None of the Abyss rooms are changed by this flag.
+
+F:  Randomize encounter room enemies.  The number of enemies in an encounter room will not change but the enemies will be randomized.  None of the encounter rooms in the Abyss are changed by this flag.
+
 O:  Randomize moongate exit locations.  For example, new moons can go to Jhelom instead of Moonglow.  Note that using this flag is likely to change the order of towns you see in the Gate spell menu; this is to ensure that the Gate spell actually sends you to the destination you specify.
 
 B:  Move the balloon to Castle Britannia.  The balloon location is reset every time you leave Castle Britannia rather than leaving Hythloth.  This flag was inspired by Final Fantasy Free Enterprise.
@@ -38,6 +42,10 @@ A:  Randomize enemy skills.  There are 14 enemy skill sets in the game; this fla
 W:  Modify the View spell.  Rather than simply being a functional copy of the Gem (which is cheaper than the spell's ingredients), the modified View spell counts the number of chests and number of stones not collected on each floor of the dungeon you are in and gives that information to the player.  It is no longer castable on the world map.  It is designed to greatly assist players who have gone out of their way to find Fungus, as this spell still requires Fungus and Manroot. 
 
 Z:  Modify map size by shrinking the overworld map to a 128x128 area instead of a 256x256 area.  This will modify the M# flag to only generate 3 times # the water tiles on each side. Note that there is a bug at the edge of the world map that causes your sprite to disappear when its location's X or Y >= 8.  Just call it the "fog" effect (I don't know how to fix this).
+
+U:  Useful runes.  Useful runes puts a set of staircases in each shrine that leads to the following locations:  If Humility, the staircase goes to the Abyss (you will need avatarhood to use this staircase of course); if Spirituality, the staircase goes to Hythloth (the same location as Castle Britannia's staircase to Hythloth), and for each other virtue, the staircase goes directly to the stone room in the dungeon of the given virtue (Honesty to Blue Stone, Compassion to Yellow stone, etc.).
+
+K:  Turn off random encounters.  Only turns off random encounters on the overworld; does not turn off random encounters in dungeons.
 
 Y#: Shorter Abyss.  Start the abyss at floor #.  Valid values are 1-8.  You will start in the same location as though you were entering that floor from the floor above in a normal run.
 
@@ -52,6 +60,7 @@ E#: Tough enemies.  A tough enemy has its HP, attack, and defense tripled, and g
 2: Make 50% of the enemies tough (20 enemies become tough).  Options 1 and 2 can be combined to make 75% (30) of the enemies tough.
 4: Make all dungeon-only enemies tough.  The dungeon-only enemies are the Bat, the Gremlin, the Mimic, the Reaper, the Slime, the Spider, and the 8 enemies in the 2nd to last fight in the Abyss.
 Note: Enemy HP, attack, and exp are capped at 255 while defense is capped at 192.  Enemies with skill set 12 (Gazer AI) have ther attack and defense only doubled (for balance reasons).  (I highly recommend trying the Abyss with Tough Enemies; the 2nd to last room feels like a real challenge)
+8: Make all enemies tough.
 
 R#: Randomize items in search locations.  The # in this flag is treated as a bit field.  The values are interpreted as follows:
 0:  Randomize items in search locations, not including the Avatar only chests in Lyceaum and Empath Abbey.
