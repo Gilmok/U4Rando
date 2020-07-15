@@ -12497,7 +12497,7 @@ class RandoWindow extends JFrame implements ActionListener
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocation(100, 100);
 		setSize(800, 600);
-		setResizable(false);
+		//setResizable(false);
 		setVisible(true);
 	}
 	
@@ -13164,7 +13164,7 @@ public class UltimaRando
 	
 	public static byte randERoom(byte room)
 	{
-		if(eRoomMap != null)
+		if(eRoomMap == null)
 		{
 			eRoomMap = new ArrayList[14];
 			String[] mvs = {"1", "2,6","10", "23","4","12,13,14,1c,26,43,45","","3,29,2b,32,34,41",
@@ -13175,7 +13175,8 @@ public class UltimaRando
 				eRoomMap[i] = new ArrayList<Byte>();
 				String[] vals = mvs[i].split(",");
 				for(int j = 0; j < vals.length; j++)
-					eRoomMap[i].add(Byte.parseByte(vals[j], 16));
+					if(!vals[j].equals(""))
+						eRoomMap[i].add(Byte.parseByte(vals[j], 16));
 			}
 		}
 		for(int i = 0; i < 14; i++)
