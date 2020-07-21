@@ -4,6 +4,9 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.51 (bugfix edition):
+  - The game no longer resets if you say "no" to a stone guard, useful runes no longer bugs the game out if you set random virtues, randomizing encounter rooms will actually produce a ROM, the View spell will properly tell you how many stones are in each dungeon if dungeons are not randomized, and the View spell will simply tell you how many stone rooms are in a dungeon if stone locations are randomized 
+
 New in ver 1.5:
   - Useful Runes: Puts a stair case in each shrine to the corresponding stone in their respective dungeons
   - Encounter room flags: You can randomize the encounter rooms and/or the encounter room enemies
