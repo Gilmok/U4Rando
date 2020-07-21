@@ -279,6 +279,8 @@ class NESRom
 		boolean randomizeMap = false;
 		boolean randomizeMoongates = false;
 		boolean randomizeDungeons = false;
+		boolean randomizeStoneLocs = false;
+		boolean changeViewSpell = false;
 		int changeAbyssLength = -1;
 		boolean randomizeERooms = false;
 		boolean usefulRunes = false;
@@ -366,10 +368,13 @@ class NESRom
 				changeShops = val;
 				break;
 			case 'W':
-				changeViewSpell();
+				changeViewSpell = true;
+				//changeViewSpell();
 				break;
 			case 'R':
 				this.changeSearchLocItems(UltimaRando.shuffleSearchItems(this.getSearchLocItems(val), val), val);
+				if(val >= 8)
+					randomizeStoneLocs = true;
 				break;
 			case 'E':
 				if(val == 8)
@@ -430,6 +435,8 @@ class NESRom
 				break;
 			}
 		}
+		if(changeViewSpell)
+			changeViewSpell(randomizeDungeons, randomizeStoneLocs);
 		if(changeSpellTeachers || changeShops > -1)
 		{
 			if(changeSpellTeachers && changeShops > -1)
@@ -782,6 +789,8 @@ class NESRom
 		//at this point we need to flip the code that checks for Hythloth's exit to move the balloon and
 		//the code that sets your overworld x and y after leaving a location
 		romData[256307] = 74;  //execute the earlier code
+		//3:b39f also points to different code (for getting booted out of dungeon for wrong stone answer) ea5b->ea4a
+		romData[62384] = 74;
 		String s = "a5 4b 29 bf c9 2f d0 03 ad c2 06 a2 00 dd f3 ea f0 06 e8 e0 26 90 f6 60 c9 01 d0 0d a9 ";
 		s += Integer.toHexString(britBalloon.x) + " 8d f0 68 a9 ";
 		s += Integer.toHexString(britBalloon.y) + " 8d f1 68 ea ea ea 8a 0a";
@@ -1211,14 +1220,14 @@ class NESRom
 	
 	public void fixNegate()  //clears out the negate spell upon death; this is a bug in the original game
 	{
-		//put negate fix at D:BFC3
+		//put negate fix at D:BFC4
 		String f2 = "a9 00 85 7d 20 16 f5 60";
 		byte[] fcb = strToBytes(f2);
-		int ff1 = findMemLoc("d:bfc3");
+		int ff1 = findMemLoc("d:bfc4");
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
-		//point D:9683 to call BFC3
-		f2 = "20 c3 bf";
+		//point D:9683 to call BFC4
+		f2 = "20 c4 bf";
 		fcb = strToBytes(f2);
 		ff1 = 218771;
 		for(int i = 0; i < fcb.length; i++)
@@ -1259,25 +1268,25 @@ class NESRom
 	
 	public void grantRandomVirtue()
 	{
-		int ff1 = 229144;
+		int ff1 = 229310;
 		for(int i = 0; i < 8; i++)
 		{
 			int ra = (int) (UltimaRando.rand() * 100);
 			romData[ff1 + i] = (byte) ra;
 		}
-		String f2 = "a0 07 b9 08 bf 99 0c 68 88 10 f7 4c 42 c2";
+		String f2 = "a0 07 b9 ae bf 99 0c 68 88 10 f7 4c 42 c2";
 		byte[] fcb = strToBytes(f2);
-		ff1 = 229152;
+		ff1 = 229318;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
-		String fcall2 = "4c 10 bf";
+		String fcall2 = "4c b6 bf";
 		fcb = strToBytes(fcall2);
 		ff1 = 221785;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
 	}
 	
-	public void changeViewSpell() //uses ffa1-ffa8
+	public void changeViewSpell(boolean randDungeons, boolean stonesRandoed) //uses ffa1-ffa8
 	{
 		//point F:FE75 (3fe85) to jump to ffa1
 		String aa = "a1 ff";
@@ -1300,7 +1309,10 @@ class NESRom
 		scon += "ad e4 06 d0 05 b9 00 62 50 03 b9 00 63 ";
 		scon += "c9 05 d0 03 ee e1 06 ";
 		scon += "c9 32 d0 03 ee e2 06 ";
-		scon += "c8 d0 03 ee e4 06 ca 10 dc 20 d0 bf ee e0 06 8c e3 06 ";
+		if(stonesRandoed)  //skip the stone check (view spell will tell you how many stone rooms there are)
+			scon += "c8 d0 03 ee e4 06 ca 10 dc ea ea ea ee e0 06 8c e3 06 ";
+		else  //view spell will tell you how many actual stones there are
+			scon += "c8 d0 03 ee e4 06 ca 10 dc 20 d0 bf ee e0 06 8c e3 06 ";
 		scon += "a2 02 a9 00 48 bd e0 06 48 ca 10 f6 ";
 		scon += "a9 60 85 28 a9 c9 85 29 ";
 		scon += "a9 bf 48 a9 b0 48 4c 42 c2";
@@ -1323,7 +1335,11 @@ class NESRom
 			romData[131009 + i] = bts[i];
 		
 		//stone test at 7:BFD0 (1ffe0)
-		String stnt = "ad e2 06 f0 19 ae e0 06 bd d1 06 38 e9 80 c9 06 f0 09 aa bd e7 cf 2d 19 68 f0 03 ce e2 06 60";
+		String stnt = "ad e2 06 f0 19 ae e0 06 ";
+		if(randDungeons)  //check the floor's stone room
+			stnt += "bd d1 06 38 e9 80 c9 06 f0 09 aa bd e7 cf 2d 19 68 f0 03 ce e2 06 60";
+		else   //check the dungeon's only stone room
+			stnt += "ad c2 06 38 e9 80 c9 06 f0 09 aa bd e7 cf 2d 19 68 f0 03 ce e2 06 60";
 		bts = strToBytes(stnt);
 		for(int i = 0; i < bts.length; i++)
 			romData[131040 + i] = bts[i];
