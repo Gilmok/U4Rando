@@ -43,6 +43,5 @@ Known bugs and issues:
 - A bug sometimes happens with visibility zones around Castle Britannia
 - Casting the Wind spell with a short spell list causes a known visual artifact
 - Shrinking the map causes a known "fog" effect at the edge of the map that causes your sprite to disappear (if you are the ship or walking around; this bug does not occur for the balloon).
-- Removing stones from dungeons causes the modified View spell to not find their associated stone rooms.
 
 Note: Some interest was expressed in the source code for this Rando.  I have uploaded the lastest java file.  I use launch4j to build the downloadable Windows executable; feel free to look at/play with/suggest bug fixes.
