@@ -1659,14 +1659,14 @@ class NESRom
 			s = 257138;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
-			int[] pgs = {1, 2, 3, 4, 5, 6, 7, 8, 13};
+			int[] pgs = {1, 2, 3, 4, 5, 6, 7, 8, 9, 13};
 			for(int j = 0; j < pgs.length; j++)
 			{
 				int page = 16384 * pgs[j];
-				//step 6: put cleanup in all pertinent pages at bf89 (pages 1-8 and D)
+				//step 6: put cleanup in all pertinent pages at bf89 (pages 1-9 and D)
 				code = "20 96 bf 4c fc c1 20 96 bf 20 2a c9 60 ";
 				code += "48 ad dd 06 85 4c ad de 06 85 53 ad df 06 85 54 68 60 ";
-				//step 7: put this small function to return the final villager in all pertinent pages (1-8 and D)
+				//step 7: put this small function to return the final villager in all pertinent pages (1-9 and D)
 				code += "20 2f f3 4c 4d ec";
 				bts = strToBytes(code);
 				s = page + 16281; //addr + 3f99  (16 byte shift)
