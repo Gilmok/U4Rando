@@ -5,7 +5,7 @@ Download all the files and put them into the same directory.  If you have a .cfg
 See the FAQ for usage.
 
 New in ver 1.51 (bugfix edition):
-  - The game no longer resets if you say "no" to a stone guard, useful runes no longer bugs the game out if you set random virtues, randomizing encounter rooms will actually produce a ROM, the View spell will properly tell you how many stones are in each dungeon if dungeons are not randomized, and the View spell will simply tell you how many stone rooms are in a dungeon if stone locations are randomized 
+  - The game no longer resets if you say "no" to a stone guard, useful runes no longer bugs the game out if you set random virtues, randomizing encounter rooms will actually produce a ROM, the View spell will properly tell you how many stones are in each dungeon if dungeons are not randomized, the View spell will simply tell you how many stone rooms are in a dungeon if stone locations are randomized, and the 2 villagers at the top of Vesper don't reset the game
 
 New in ver 1.5:
   - Useful Runes: Puts a stair case in each shrine to the corresponding stone in their respective dungeons
