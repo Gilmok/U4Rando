@@ -7,6 +7,7 @@ See the FAQ for usage.
 New in ver 1.6
   - You can now include the Altar Keys and the item recieved for turning in the scale in item randomization.
   - You can now turn off step cooldowns for meditation and turning in the scale.
+  - You can now start off with Partial Avatarhood in any number of virtues (or a random number of virtues)
   - You can now take your entire party into the Abyss.
   - You can now "curse" encounter rooms, dungeon floors, or entire dungeons (see FAQ for details).
   - The starting location softlock bug should be fixed now.
