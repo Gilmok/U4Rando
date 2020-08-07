@@ -4,6 +4,14 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.6
+  - You can now include the Altar Keys and the item recieved for turning in the scale in item randomization.
+  - You can now turn off step cooldowns for meditation and turning in the scale.
+  - You can now take your entire party into the Abyss.
+  - You can now "curse" encounter rooms, dungeon floors, or entire dungeons (see FAQ for details).
+  - The starting location softlock bug should be fixed now.
+  - The View spell is now more robust in its ability to find items you have not yet collected.
+
 New in ver 1.51 (bugfix edition):
   - The game no longer resets if you say "no" to a stone guard, useful runes no longer bugs the game out if you set random virtues, randomizing encounter rooms will actually produce a ROM, the View spell will properly tell you how many stones are in each dungeon if dungeons are not randomized, the View spell will simply tell you how many stone rooms are in a dungeon if stone locations are randomized, and the 2 villagers at the top of Vesper don't reset the game
 
@@ -43,5 +51,6 @@ Known bugs and issues:
 - A bug sometimes happens with visibility zones around Castle Britannia
 - Casting the Wind spell with a short spell list causes a known visual artifact
 - Shrinking the map causes a known "fog" effect at the edge of the map that causes your sprite to disappear (if you are the ship or walking around; this bug does not occur for the balloon).
+- The blacksmith in Minoc can be a bit curt when he gives you the item for turning in the scale.  Busy, busy blacksmith and all that.
 
 Note: Some interest was expressed in the source code for this Rando.  I have uploaded the lastest java file.  I use launch4j to build the downloadable Windows executable; feel free to look at/play with/suggest bug fixes.
