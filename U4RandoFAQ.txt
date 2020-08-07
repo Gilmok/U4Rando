@@ -39,13 +39,15 @@ T:  Randomize spells taught by spell teaching villagers.  Any villager with text
 
 A:  Randomize enemy skills.  There are 14 enemy skill sets in the game; this flag sets each enemy to get a random skill set.  Note: The 2nd to last fight in the Abyss has limitations on enemy skills; they cannot use set 6 (25% sleep), set 8 (25% negate), or set 12 (sleep missile attack), and at most 1 can have set 13 (12.5% fire, 6.25% tremor, 6.25% sleep).
 
-W:  Modify the View spell.  Rather than simply being a functional copy of the Gem (which is cheaper than the spell's ingredients), the modified View spell counts the number of chests and number of stones not collected on each floor of the dungeon you are in and gives that information to the player.  It is no longer castable on the world map.  It is designed to greatly assist players who have gone out of their way to find Fungus, as this spell still requires Fungus and Manroot. New in 1.51:  If randomizing stone locations, the View spell will not check what stones you have when casting it, so you can interpret its results as number of stone rooms rather than actual stones.
+W:  Modify the View spell.  Rather than simply being a functional copy of the Gem (which is cheaper than the spell's ingredients), the modified View spell counts the number of chests and number of stones not collected on each floor of the dungeon you are in and gives that information to the player.  It is no longer castable on the world map.  It is designed to greatly assist players who have gone out of their way to find Fungus, as this spell still requires Fungus and Manroot. New in 1.6:  If including the stone rooms in randomization, this spell will actually check your inventory for the items contained in stone room chests and not count items you have already collected.
 
 Z:  Modify map size by shrinking the overworld map to a 128x128 area instead of a 256x256 area.  This will modify the M# flag to only generate 3 times # the water tiles on each side. Note that there is a bug at the edge of the world map that causes your sprite to disappear when its location's X or Y >= 8.  Just call it the "fog" effect (I don't know how to fix this).  New in 1.5.2: If this flag is set, the map will be randomized (so as to not use the default 256x256 map when the game is expecting a 128x128 map).
 
 U:  Useful runes.  Useful runes puts a set of staircases in each shrine that leads to the following locations:  If Humility, the staircase goes to the Abyss (you will need avatarhood to use this staircase of course); if Spirituality, the staircase goes to Hythloth (the same location as Castle Britannia's staircase to Hythloth), and for each other virtue, the staircase goes directly to the stone room in the dungeon of the given virtue (Honesty to Blue Stone, Compassion to Yellow stone, etc.).
 
 K:  Turn off random encounters.  Only turns off random encounters on the overworld; does not turn off random encounters in dungeons.
+
+y:  Allow entire party into the Abyss.  Allows you to take your entire party with you to the Abyss.
 
 Y#: Shorter Abyss.  Start the abyss at floor #.  Valid values are 1-8.  You will start in the same location as though you were entering that floor from the floor above in a normal run.
 
@@ -62,17 +64,44 @@ E#: Tough enemies.  A tough enemy has its HP, attack, and defense tripled, and g
 Note: Enemy HP, attack, and exp are capped at 255 while defense is capped at 192.  Enemies with skill set 12 (Gazer AI) have ther attack and defense only doubled (for balance reasons).  (I highly recommend trying the Abyss with Tough Enemies; the 2nd to last room feels like a real challenge)
 8: Make all enemies tough.
 
+e#: Cursed encounter rooms.  Makes it so that battling and walking around in an encounter room does not replenish MP.  The # is a bid field with values as follows:
+1: Make 25% of encounter rooms cursed.
+2: Make 50% of encounter rooms cursed.  (combined with 1, makes 75% of encounter rooms cursed).
+4: Make all encounter rooms cursed.
+
+f#: Cursed dungeon floors.  Makes it so walking around on a dungeon floor or fighting in and walking around encounter rooms on that floor doesn't replenish MP.  Note that all encounter rooms on a cursed floor become cursed as well, so cursing floors will curse the same instance of the encounter room on other dungeon floors (even if those floors are not cursed).  The # is a bit field with values as follows:
+1:  Curse 25% of dungeon floors.
+2:  Curse 50% of dungeon floors.  (Combined with 1, makes 75% of dungeon floors cursed).
+4:  Curse all dungeon floors.
+
+d#: Cursed dungeons.  Curses each floor in # dungeons.  If # is 9, curses all floors in a random number of dungeons.  See cursed dungeon floors for more info.  Note:  The Abyss is always picked last, so # must be 8 for the Abyss to become cursed.
+
 R#: Randomize items in search locations.  The # in this flag is treated as a bit field.  The values are interpreted as follows:
 0:  Randomize items in search locations, not including the Avatar only chests in Lyceaum and Empath Abbey.
 1:  Also exlude the Fungus and Manroot search spots on the map.  (This option is still recommended as you are required to go through a lengthy clue chain to get either location, and you need the sextant to actually find them).
 2:  Include the Sword of Paradise and Exotic Armor in search spots.  If this flag is set, any Rune is excluded from being placed in the Lyceaum and Empath Abbey Avatar-only search spots.
-4:  Switch the Sword of Paradise and Exotic Armor for a random sword and armor, respectively.
-Note: This flag also eliminates the new moons check on the new moons search spot (that contains the black stone of Humility) as that check was tied to the item itself rather than the search spot; you can therefore check the new moons moongate search spot at anytime and get the item
-8:  Randomize locations of all items, including the stones.  Note that this will make it so that the modified View spell will NOT be able to locate stone rooms that do not have stones.  This flag can only be set with 1 for a max value of 9.
+4:  Include the stone chests in item randomization.  If used with the modified View spell, it will change the View spell to say "items" instead of "stones" when giving information about dungeon floors.
+
+r#: Randomize items in search locations.  Like 'R', this flag is also a bit field.  Values are as follows:
+1: Include Altar Room Items (the three Keys) in search spot randomization.
+2: Include the item given to you for turning in the Scale.
+
+Note: These two flags eliminate the new moons check on the new moons search spot (that contains the black stone of Humility) as that check was tied to the item itself rather than the search spot; you can therefore check the new moons moongate search spot at anytime and get the item
+
+L#: Replace items flag.  This is a bit field flag.  Values are as follows:
+1:  Replace the Paradise Sword and Exotic Armor with a random weapon and random armor, respectively.
+2:  Replace the +2 Axe with a random guild item (weighted toward Key or Sextant).
+4:  Replace the Skull of Mondain with a random guild item (weighted toward Key or Sextant).
 
 C#:  Boost values of gold chests.  Adds 25 times # to each gold chest you open, up to a maximum of adding 150 gold.
 
+c#:  Eilimates cooldowns.  This is a bit field flag.  Values are as follows:
+1:  Eliminates the 60 (times cycles) step cooldown for meditating at a shrine.
+2:  Eliminates the 128 step cooldown for recieving the scale item.
+
 V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=Randomize all virtue values, 3=set all virtues to 99.  4=start off as the avatar.  Use V3 or v4 to avoid all that virtue grinding.
+
+v#: Set initial partial avatarhood.  The # is the number of virtues to grant partial avatarhood with at the start of the game.  If set to 8, it grants partial avatarhood in a random number of virtues (0-8 inclusive).
 
 G#: Randomize initial gold.  The # means the following: 0=set initial gold to 0, 1=set it to a random number between 0 and 400, 2=set it to a random number between 0 and 1000.  In ver. 1.31 this also sets how much gold you get upon dying.
 
