@@ -1768,7 +1768,7 @@ class NESRom
 		//note: this latest version preserves equipment check to save space on the forward call function and waste less space here
 		String fx = "84 03 a6 71 bd 15 68 0a 7d 15 68 0a aa ";
 		fx += "bd 33 68 d0 04 e6 03 d0 06 e8 c8 c0 06 90 f1 a4 03 ";
-		fx += "a9 " + f2[0] + " 48 a9 " + f2[1] + " 48 a9 0e 4c 31 f3 ea ea";
+		fx += "a9 " + f2[0] + " 48 a9 " + f2[1] + " 48 a9 0e 4c 31 f3 ea";
 		byte[] bts = strToBytes(fx);
 		writeBytes(bts, "4:afaf");
 		
