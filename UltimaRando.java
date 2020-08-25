@@ -297,8 +297,8 @@ class NESRom
 		int changeShops = -1;
 		int dungeonPostProcessing = -1;
 		LinkedHashMap<String, Integer> flagMap = new LinkedHashMap<String, Integer>();
-		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E", "C", "V", "Q", "I", "H", "G", "S", "Y", "Z", "N", "U", "F", "K", "L", "v", "r", "e", "f", "d", "c", "y"};
-		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, true, true, true, true, true, true, true, false};
+		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E", "C", "V", "Q", "I", "H", "G", "S", "Y", "Z", "N", "U", "F", "K", "L", "v", "r", "e", "f", "d", "c", "y", "x"};
+		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, true, true, true, true, true, true, true, false, false};
 		for(int i = 0; i < okFlags.length; i++)
 			flagMap.put(okFlags[i], -1);
 		while(flags.length() > 0)
@@ -473,12 +473,15 @@ class NESRom
 			{
 				shuffled = UltimaRando.shuffleSearchItems(this.getSearchLocItems(val, repl), val, repl);
 				if(shuffled != null)
-					break;
+				{
+					if(changeSearchLocItems(shuffled, val))
+						break;
+				}
 				fail++;
 			}
 			if(shuffled == null)
 				throw new IOException("Too many softlocks");
-			this.changeSearchLocItems(shuffled, val);
+			
 			if((randomizeItemLocs & 4) > 0)
 				randomizeStoneLocs = true;
 			boolean scaleItem = false;
@@ -1208,11 +1211,12 @@ class NESRom
 	{
 		ArrayList<Byte> bts = getSearchLocItems(6, 0);
 		String[] spots = {"Avatar Sword", "Avatar Armor", "Moonglow", "Britain", "Jhelom", "Yew", "Minoc", "Trinsic", "Castle Britannia", "Paws",
-				"Serpent's Hold 1", "Serpent's Hold 2", "Magincia 1", "Cove", "Lyceaum", "Magincia 2",
+				"Serpent's Spine Chest 1", "Serpent's Spine Chest 2", "Magincia 1", "Cove", "Lyceaum", "Magincia 2",
 				"Blue Stone Room", "Yellow Stone Room", "Red Stone Room", "Green Stone Room", "Orange Stone Room", "Purple Stone Room",
 				"Horn Island", "Skull Shoal", "Bell Shoal", "New Moongates", "Fungus", "Manroot", "Altar-Truth", "Altar-Cour", "Altar-Love", "Scale item"};
-		String[] items = {"1e", "28", "56", "5", "6", "7", "8", "27", "50", "51", "52", "53", "54", "55", "b", "c", "9", "57", "36", "37", "d", "e", "f", "1d"};
-		String[] iNames = {"Pradise Sword", "Exotic Armor", "Wht Stone", "Scale", "Flute", "Candle", "Book", "Robe", "Blue Stone", "Yellow Stone", "Red Stone", "Green Stone", "Orange Stone", "Purple Stone", "Horn", "Skull", "Bell", "Bk Stone", "Fungus", "Manroot", "Key-Truth", "Key-Love", "Key-Cour", "+2 Axe"};
+		String[] items = {"1e", "28", "56", "5", "6", "7", "8", "27", "50", "51", "52", "53", "54", "55", "b", "c", "9", "57", "36", "37", "d", "e", "f", "1d", "1", "2", "3", "4"};
+		String[] iNames = {"Pradise Sword", "Exotic Armor", "Wht Stone", "Scale", "Flute", "Candle", "Book", "Robe", "Blue Stone", "Yellow Stone", "Red Stone", "Green Stone", "Orange Stone", "Purple Stone", "Horn", "Skull", "Bell", "Bk Stone", "Fungus", "Manroot", "Key-Truth", "Key-Love", "Key-Cour", "+2 Axe",
+				           "Gem", "Key", "Oil", "Sextant"};
 		String[] runes = {"Honesty", "Compassion", "Valor", "Justice", "Sacrifice", "Honor", "Spirituality", "Humility"};
 		if((mode & 16) == 16)
 		{
@@ -1314,7 +1318,7 @@ class NESRom
 		return rv;
 	}
 	
-	public void changeSearchLocItems(ArrayList<Byte> newItems, int mode)
+	public boolean changeSearchLocItems(ArrayList<Byte> newItems, int mode)
 	{
 		String[] castleLocs = {"a601", "abd3"};
 		String[] runeLocs = {"1635b", "239b1", "1f0d6", "168e1", "12650", "1a44f", "65e6", "1ae0a"};
@@ -1372,12 +1376,19 @@ class NESRom
 			byte bb = newItems.get(j);
 			byte[] arr = {bb};
 			writeBytes(arr, "4:aaa2");
+			j++;
+		}
+		if(j != newItems.size())
+		{
+			System.err.println("Incomplete placement of items");
+			return false;
 		}
 		//eliminate the moon check on items whose index & 7 == 7
 		String s = "ea a9 00";
 		byte[] bts = strToBytes(s);
 		for(int i = 0; i < bts.length; i++)
 			romData[12400 + i] = bts[i];
+		return true;
 	}
 	
 	public void changeOutsideSearchLocs(ArrayList<Point> newOutsideLocs)  //newOutsideLocs will have the balloon, whirlpool, and abyss which we do not care about
@@ -1675,7 +1686,7 @@ class NESRom
 		//@E:beb2 (3bec2)
 		String fx = "c9 04 b0 04 c9 02 d0 20 ";
 		fx += "c9 10 b0 07 29 0f a8 be 29 68 60 ";  
-		fx += "c9 30 b0 17 a0 30 d9 39 68 f0 0d 09 80 d9 39 68 f0 06 88 10 f1 a2 00 60 a2 01 60 "; 
+		fx += "c9 30 b0 1a 38 e9 0f a0 30 d9 39 68 f0 0d 49 80 d9 39 68 f0 06 88 10 f1 a2 00 60 a2 01 60 "; 
 		fx += "c9 40 b0 02 90 f4 ";  
 		fx += "aa 29 0f a8 b9 e7 cf e0 50 b0 05 2d 1a 68 90 03 2d 19 68 aa 60"; 
 		byte[] bts = strToBytes(fx);
@@ -1691,6 +1702,7 @@ class NESRom
 		//putItemFindFx();
 		String fx = "a9 b1 48 ae c3 06 bd fd bf c5 68 d0 1a ";  
 		fx += "bd fa bf 85 6b ";
+		fx += "29 36 c9 36 f0 08 ";  //fungus and manroot check (skip the chest set if item is fungus or manroot)
 		fx += "ad de 68 09 02 8d de 68 ";
 		//fx += "a5 6b 20 b2 be d0 0d ";
 		fx += "a9 b3 85 28 a9 ad 85 29 a9 bc 48 d0 03 "; 
@@ -12938,7 +12950,10 @@ class RandoWindow extends JFrame implements ActionListener
 					int x = Integer.parseInt(String.valueOf(flags.charAt(flagi + 1)));
 					mode = x * 16;
 				}
-				System.out.println(nr.getFinalSearchLocData(mode));
+				String output = nr.getFinalSearchLocData(mode);
+				System.out.println(output);
+				if(flags.contains("x"))
+					saveSpoiler(dir, inputLines[0].txt.getText(), output);
 				/*long ll = Long.parseLong(inputLines[0].txt.getText());
 				UltimaRando.setSeed(ll);
 				rom = new NESRom(fname);
@@ -12969,6 +12984,25 @@ class RandoWindow extends JFrame implements ActionListener
 			mw.setMoongates(nr.getMoongates());*/
 			//System.out.println(nr.getInitCharData());
 			JOptionPane.showMessageDialog(RandoWindow.this, outFile + "\nhas been successfully generated.", "Done", JOptionPane.INFORMATION_MESSAGE);
+		}
+
+		private void saveSpoiler(String dir, String seed, String output) 
+		{
+			File f = new File(dir + "U4Spoiler." + seed + ".txt");
+			try
+			{
+				if(!f.exists())
+					f.createNewFile();
+				FileWriter fw = new FileWriter(f);
+				BufferedWriter bw = new BufferedWriter(fw);
+				bw.write(output);
+				bw.close();
+			}
+			catch(Exception ex)
+			{
+				System.out.println(ex.getMessage());
+			}
+			
 		}
 	}
 	
@@ -13080,14 +13114,29 @@ class RandoWindow extends JFrame implements ActionListener
 		for(int i = 0; i < opts.size(); i++)
 		{
 			FlagPanel fp = opts.get(i);
-			if(!fp.flags[0].startsWith("" + a) && fl.length() == 2)
-				continue;
+			
+			if(fl.length() == 2)
+			{
+				boolean found = false;
+				for(int k = 0; k < fp.flags.length; k++)
+				{
+					if(fp.flags[k].charAt(0) == a)
+					{
+						found = true;
+						break;
+					}
+				}
+				if(!found)
+					continue;
+			}
 			if(fp.bitField == true && fl.length() == 2)
 			{
 				int val = Integer.parseInt("" + fl.charAt(1));
 				for(int j = 0; j < fp.flags.length; j++)
 				{
 					String s = fp.flags[j];
+					if(!s.startsWith(fl.charAt(0) + ""))
+						continue;
 					int val2 = Integer.parseInt("" + s.charAt(1));
 					if((val & val2) > 0 || val2 == 0)
 						fp.checks[j].setSelected(true);
@@ -13191,11 +13240,11 @@ class RandoWindow extends JFrame implements ActionListener
 		}
 		opts.add(new FlagPanel("Randomize overworld map", optM, flM, false, false, this));  //0
 		
-		String[] opt = {"Randomize Moongate Destinations", "Put Balloon next to Castle Britannia",
+		String[] opt = {"Output U4Spoiler.txt w/ROM", "Randomize Moongate Destinations", "Put Balloon next to Castle Britannia",
 				 "Randomize spells learned by Spell Teaching Villagers", 
 				 "Make the Overworld Map Smaller",
 				 "Useful Runes", "Turn off overworld random encounters"};
-		String[] fl = {"O", "B", "T", "Z", "U", "K"};
+		String[] fl = {"x", "O", "B", "T", "Z", "U", "K"};
 		opts.add(new FlagPanel("General", opt, fl, true, false, this));  //1
 		
 		String[] shopt = {"Shuffle Shop Locations", "Enforce Shop Non-Compete", "Preserve Shop Types"};
@@ -14027,6 +14076,17 @@ public class UltimaRando
 		}
 	}
 	
+	/*private static boolean softlockTest2(ArrayList<Byte> itemList, int mode)
+	{
+		ArrayList<Byte> reqd = new ArrayList<Byte>();
+		//all runes (64-71)
+		for(int i = 64; i <= 71; i++)
+			reqd.add((byte) i);
+		for(int i = 80; i <= 87; i++)
+			reqd.add((byte) i);
+		
+	}*/
+	
 	private static boolean softlockTest(ArrayList<Byte> itemList, int mode)
 	{
 		ArrayList<ArrayList> bigList = new ArrayList<ArrayList>(6);
@@ -14110,7 +14170,7 @@ public class UltimaRando
 	
 	public static ArrayList<Byte> shuffleSearchItems(ArrayList<Byte> oldItems, int mode, int repl)
 	{
-		byte replItem = 0;
+		byte replItem = -1;
 		int funMan = oldItems.size() - 1;
 		int altarItemLoc = funMan + 1;
 		byte[][] reqStones = {{80, 83, 85, 86}, {82, 84, 85, 86}, {81, 83, 84, 86}};
@@ -14128,7 +14188,8 @@ public class UltimaRando
 				replItem = getRandomItem(replItem);
 				oldItems.add(replItem);
 			}
-			oldItems.add((byte) 29);
+			else
+				oldItems.add((byte) 29);
 		}
 		if((repl & 4) == 4)
 		{
@@ -14311,20 +14372,20 @@ public class UltimaRando
 		return rv;
 	}
 	
-	private static byte getRandomItem(int alreadyPlaced) //use 0 if alreadyPlaced is null
+	private static byte getRandomItem(int alreadyPlaced) //use -1 if alreadyPlaced is null
 	{
 		byte r = (byte) alreadyPlaced;
 		while(r == alreadyPlaced)
 		{
 			r = (byte) (UltimaRando.rand() * 11);
 			if(r < 5)
-				r = 3;  //key
-			else if(r < 7)
-				r = 6;  //scale
+				r = 2;  //key (0,1,2,3,4,9)
+			else if(r < 8)
+				r = 4;  //sextant (5,6,7)
 			else if(r == 10)
-				r = 4;
+				r = 3;  //oil
 			else
-				r -= 7;  //8->1, 9->2
+				r -= 7;  //8->1 (Gem), 9->2 (key)
 		}
 		return r;
 	}
