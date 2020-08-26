@@ -6,7 +6,7 @@ See the FAQ for usage.
 
 New in ver 1.61 (Cheater edition)
   - You can now output a spoiler list for the search spot items
-  - Several bugfixes, nameley having to do with softlocks, duplicate items, and an incorrectly coded softlock detector
+  - Several bugfixes, namely having to do with softlocks, duplicate items, and an incorrectly coded softlock detector
 
 New in ver 1.6
   - You can now include the Altar Keys and the item recieved for turning in the scale in item randomization.
