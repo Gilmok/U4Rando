@@ -13542,7 +13542,7 @@ class RandoWindow extends JFrame implements ActionListener
 			long seed = Long.parseLong(s1);
 			UltimaRando.setSeed(seed);
 			rt = new RandomizerThread();
-			tim = new Timer(10000, this);
+			tim = new Timer(20000, this);
 			//begin the race
 			rt.start();
 			tim.start();
@@ -14140,30 +14140,34 @@ public class UltimaRando
 		}
 		if((mode & 32) == 32)
 			items[5] = itemList.get(itemList.size() - 1);
+		int k = 0;
 		for(int i = 0; i < 6; i++)
 		{
 			if(items[i] == -1)
 				continue;
-			for(int j = 0; j < 6; j++)
+			for(int j = 0; j < bigList.size(); j++)
 			{
-				if(i == j)
+				if(k == j)
 					continue;
 				if(bigList.get(j).contains(items[i]))
 					bigList.get(j).addAll(bigList.get(i));
 			}
+			k++;
 		}
 		System.out.println("SL Test items=" + Arrays.toString(items));
 		boolean rv = true;
+		int j = 0;
 		for(int i = 0; i < 6; i++)
 		{
 			if(items[i] == -1)
 				continue;
 			
-			if(bigList.get(i).contains(items[i]))
+			if(bigList.get(j).contains(items[i]))
 			{
 				System.err.println("Softlock failure in item #" + i + " itm=" + items[i] + " forb=" + bigList.get(i).toString());
 				rv = false;
 			}
+			j++;
 		}
 		return rv;
 	}
