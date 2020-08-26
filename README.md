@@ -4,6 +4,10 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.61 (Cheater edition)
+  - You can now output a spoiler list for the search spot items
+  - Several bugfixes, nameley having to do with softlocks, duplicate items, and an incorrectly coded softlock detector
+
 New in ver 1.6
   - You can now include the Altar Keys and the item recieved for turning in the scale in item randomization.
   - You can now turn off step cooldowns for meditation and turning in the scale.
