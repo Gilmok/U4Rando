@@ -386,6 +386,7 @@ class NESRom
 				break;
 			case 'L':
 				replaceItems = val;
+				replaceSearchItems(val);
 				break;
 			case 'E':
 				if(val == 8)
@@ -463,15 +464,17 @@ class NESRom
 			}
 			
 		}
+		
 		if(randomizeItemLocs > -1)
 		{
 			int val = randomizeItemLocs;
 			int repl = replaceItems;
+			byte axe = romData[findMemLoc("4:aaa2")];
 			int fail = 0;
 			ArrayList<Byte> shuffled = null;
 			while(fail < 500)
 			{
-				shuffled = UltimaRando.shuffleSearchItems(this.getSearchLocItems(val, repl), val, repl);
+				shuffled = UltimaRando.shuffleSearchItems(this.getSearchLocItems(val), val, axe);
 				if(shuffled != null)
 				{
 					if(changeSearchLocItems(shuffled, val))
@@ -485,12 +488,22 @@ class NESRom
 			if((randomizeItemLocs & 4) > 0)
 				randomizeStoneLocs = true;
 			boolean scaleItem = false;
+			//if replacing the +2 Axe you must treat the Minoc blacksmith as a chest
+			if((repl & 2) == 2)
+			{
+				val |= 32;
+				
+			}
 			if((val & 32) == 32)
 				scaleItem = true;
 			if((val & 16) == 16)
 				changeAlterRoomItems(scaleItem);
 			else if(scaleItem)
 				changeScaleItem(-1);
+		}
+		else if((replaceItems & 2) == 2)
+		{
+			changeScaleItem(-1);
 		}
 		if(changeVirtueVal > 0 || randPartAvatar > 0)
 		{
@@ -591,6 +604,30 @@ class NESRom
 		return rv;
 	}
 	
+	private void replaceSearchItems(int val) 
+	{
+		// TODO Auto-generated method stub
+		byte repl = -1;
+		if((val & 1) == 1)  //replace the avatar sword and armor
+		{
+			byte m = (byte) (21 + (UltimaRando.rand() * 10));
+			romData[42497] = ((byte) (m | -128));//add random melee, put it at a601
+			m = (byte) (32 + (UltimaRando.rand() * 10));
+			romData[43987] = ((byte) (m | -128));//add random armor, put it at abd3
+		}
+		if((val & 2) == 2)  //replace the +2 Axe
+		{
+			repl = UltimaRando.getRandomItem(repl);
+			byte[] bts = {repl};
+			writeBytes(bts, "4:aaa2");
+		}
+		if((val & 4) == 4)  //replace the Skull of Mondain
+		{
+			repl = UltimaRando.getRandomItem(repl);
+			romData[24998] = repl;  //61a6
+		}
+	}
+
 	public void curseAreas(int[] cursedAreas, Dungeon[] ds) 
 	{
 		if(cursedAreas[0] + cursedAreas[1] + cursedAreas[2] == 0)
@@ -1209,7 +1246,7 @@ class NESRom
 	
 	public String getFinalSearchLocData(int mode)
 	{
-		ArrayList<Byte> bts = getSearchLocItems(6, 0);
+		ArrayList<Byte> bts = getSearchLocItems(6);
 		String[] spots = {"Avatar Sword", "Avatar Armor", "Moonglow", "Britain", "Jhelom", "Yew", "Minoc", "Trinsic", "Castle Britannia", "Paws",
 				"Serpent's Spine Chest 1", "Serpent's Spine Chest 2", "Magincia 1", "Cove", "Lyceaum", "Magincia 2",
 				"Blue Stone Room", "Yellow Stone Room", "Red Stone Room", "Green Stone Room", "Orange Stone Room", "Purple Stone Room",
@@ -1223,8 +1260,16 @@ class NESRom
 			for(int i = 0; i < 3; i++)
 				bts.add(romData[245770 + i]); 
 		}
+		else
+		{
+			int[] aa = {13, 15, 14};
+			for(int i = 0; i < 3; i++)
+				bts.add((byte) aa[i]);
+		}
 		if((mode & 32) == 32)
 			bts.add(romData[76466]);
+		else
+			bts.add((byte) 29);  //the byte here will be 0e (14) but it is the +2 Axe (item 1d, or 29)
 		String rv = "";
 		for(int i = 0; i < bts.size(); i++)
 		{
@@ -1262,7 +1307,7 @@ class NESRom
 		return rv;
 	}
 	
-	public ArrayList<Byte> getSearchLocItems(int mode, int replace)
+	public ArrayList<Byte> getSearchLocItems(int mode)
 	{
 		String[] castleLocs = {"a601", "abd3"};
 		String[] runeLocs = {"1635b", "239b1", "1f0d6", "168e1", "12650", "1a44f", "65e6", "1ae0a"};
@@ -1271,15 +1316,15 @@ class NESRom
 		String[] stoneLocs = {"ecf7", "ecfc", "ed01", "ed06", "ed0b", "ed10"};
 		ArrayList<Byte> rv = new ArrayList<Byte>(28);
 		int j = 0;
-		if((replace & 1) == 1)
+		/*if((replace & 1) == 1)
 		{
 			byte m = (byte) (21 + (UltimaRando.rand() * 10));
 			rv.add((byte) (m | -128));//add random melee
 			m = (byte) (32 + (UltimaRando.rand() * 10));
 			rv.add((byte) (m | -128));//add random armor
 			j = 2;
-		}
-		else if((mode & 2) == 2)
+		}*/
+		if((mode & 2) == 2)
 		{
 			for(int i = 0; i < castleLocs.length; i++)
 			{
@@ -1769,10 +1814,13 @@ class NESRom
 	public void changeScaleItem(int loc)  //if only doing this, loc should be -1
 	{
 		int ll = loc;
+		boolean scaleOnly = false;
 		if(loc == -1)
 		{
 			int st = putItemFindFx();
-			ll = putChestGrabber(st);
+			//ll = putChestGrabber(st);
+			ll = st;
+			scaleOnly = true;
 		}
 		String jaddr = Integer.toHexString((ll % 16384) + 32751);  //32768 - 17
 		String[] f2 = {jaddr.substring(0, 2), jaddr.substring(2,4)};
@@ -1785,7 +1833,7 @@ class NESRom
 		writeBytes(bts, "4:afaf");
 		
 		//put the forward call function @ll
-		//ll jump target = 11 - 21 bytes
+		//ll jump target = 11 - 21 bytes (if in conjucntion with altar replace; else just do your own thing)
 		int llj = ll - 21;
 		jaddr = Integer.toHexString((llj % 16384) + 32752);  //32768 - 16
 		String[] ff = {jaddr.substring(0, 2), jaddr.substring(2,4)};
@@ -1796,7 +1844,15 @@ class NESRom
 		fx += "a0 00 a9 c2 48 a9 28 48 a9 04 4c 31 f3 ";  //fail
 		fx += "c9 40 b0 05 ";  //out2
 		fx += "ad 01 68 d0 ea "; //moon
-		fx += "ad d2 68 09 20 8d d2 68 a9 b1 48 4c " + ff[1] + " " + ff[0];  //out
+		if(!scaleOnly)
+			fx += "ad d2 68 09 20 8d d2 68 a9 b1 48 4c " + ff[1] + " " + ff[0];  //out
+		else
+		{
+			fx += "ad d2 68 09 20 8d d2 68 ";
+			fx += "a9 b3 85 28 a9 ad 85 29 ";
+			fx += "a9 ae 48 a9 33 48 ";
+			fx += "a9 00 4c 31 f3";
+		}
 		bts = strToBytes(fx);
 		for(int i = 0; i < bts.length; i++)
 			romData[ll + i] = bts[i];
@@ -12950,6 +13006,14 @@ class RandoWindow extends JFrame implements ActionListener
 					int x = Integer.parseInt(String.valueOf(flags.charAt(flagi + 1)));
 					mode = x * 16;
 				}
+				//treat replacing the +2 Axe as shuffling in the +2 Axe for reporting purposes
+				flagi = flags.indexOf("L");
+				if(flagi > -1)
+				{
+					int x = Integer.parseInt(String.valueOf(flags.charAt(flagi + 1)));
+					if((x & 2) == 2)
+						mode |= 32;
+				}
 				String output = nr.getFinalSearchLocData(mode);
 				System.out.println(output);
 				if(flags.contains("x"))
@@ -13836,15 +13900,31 @@ public class UltimaRando
 	
 	static ArrayList<Byte>[] eRoomMap;
 	
+	public static void testERoom()
+	{
+		for(int i = 0; i <= 69; i++)
+		{
+			System.out.print(i + "(" + Integer.toHexString(i) + "):");
+			for(int j = 0; j < 10; j++)
+			{
+				byte bb = randERoom((byte) i);
+				System.out.print(bb + "(" + Integer.toHexString(bb) + "),");
+			}
+			System.out.println();
+		}
+	}
+	
 	public static byte randERoom(byte room)
 	{
 		if(eRoomMap == null)
 		{
-			eRoomMap = new ArrayList[14];
 			String[] mvs = {"1", "2,6","10", "23","4","12,13,14,1c,26,43,45","","3,29,2b,32,34,41",
-					        "0,5,7,19,1a,1e,22,24,25,2e,3d","20","15,18,33","8,d,17,1b,2d","16,1d,21",
-					        "9,e,1f","a,b,c,f,2c"};
-			for(int i = 0; i < 14; i++)
+			        "0,5,7,19,1a,1e,22,24,25,2e,3d","20","15,18,33","8,d,17,1b,2d","16,1d,21",
+			        "9,e,1f","a,b,c,11,f,2c"};
+			int mm = mvs.length;
+			eRoomMap = new ArrayList[mm];
+			
+			for(int i = 0; i < mm; i++)
 			{
 				eRoomMap[i] = new ArrayList<Byte>();
 				String[] vals = mvs[i].split(",");
@@ -13853,7 +13933,7 @@ public class UltimaRando
 						eRoomMap[i].add(Byte.parseByte(vals[j], 16));
 			}
 		}
-		for(int i = 0; i < 14; i++)
+		for(int i = 0; i < eRoomMap.length; i++)
 		{
 			if(eRoomMap[i].contains(room))
 			{
@@ -14058,7 +14138,7 @@ public class UltimaRando
 				int fails = 0;
 				while(fails < 500)
 				{
-					ArrayList<Byte> rv = shuffleSearchItems(nr.getSearchLocItems(55, 0), 55, 0);
+					ArrayList<Byte> rv = shuffleSearchItems(nr.getSearchLocItems(55), 55, (byte) 14);
 					if(rv != null)
 						break;
 					fails++;
@@ -14172,9 +14252,9 @@ public class UltimaRando
 		return rv;
 	}
 	
-	public static ArrayList<Byte> shuffleSearchItems(ArrayList<Byte> oldItems, int mode, int repl)
+	public static ArrayList<Byte> shuffleSearchItems(ArrayList<Byte> oldItems, int mode, byte axe)
 	{
-		byte replItem = -1;
+		//byte replItem = -1;
 		int funMan = oldItems.size() - 1;
 		int altarItemLoc = funMan + 1;
 		byte[][] reqStones = {{80, 83, 85, 86}, {82, 84, 85, 86}, {81, 83, 84, 86}};
@@ -14187,15 +14267,20 @@ public class UltimaRando
 		int scaleLoc = oldItems.size();
 		if((mode & 32) > 0)  //add the +2 axe (1d)
 		{
-			if((repl & 2) == 2)
+			//byte axe = 
+			/*if((repl & 2) == 2)
 			{
 				replItem = getRandomItem(replItem);
 				oldItems.add(replItem);
 			}
-			else
+			else*/
+			if(axe == 14)  //not replaced
 				oldItems.add((byte) 29);
+			else
+				oldItems.add(axe);
+			//mode |= 32;
 		}
-		if((repl & 4) == 4)
+		/*if((repl & 4) == 4)
 		{
 			for(int i = 0; i < oldItems.size(); i++)
 			{
@@ -14205,7 +14290,7 @@ public class UltimaRando
 					oldItems.set(i, replItem);
 				}
 			}
-		}
+		}*/
 		ArrayList<Byte> rv = new ArrayList<Byte>(oldItems.size());
 		for(int i = 0; i < oldItems.size(); i++)  //put items in chests
 		{
@@ -14232,7 +14317,7 @@ public class UltimaRando
 		int j = 0;
 		if((mode & 2) == 2)  //shuffle avatar armor/weapon loc 
 		{
-			if((repl & 1) == 1)  //substitutes the avatar armor and sword with a random armor and weapon
+			/*if((repl & 1) == 1)  //substitutes the avatar armor and sword with a random armor and weapon
 			{
 				for(int i = 0; i < 2; i++)
 				{
@@ -14242,7 +14327,7 @@ public class UltimaRando
 				}
 			}
 			else
-			{
+			{*/
 				//grab a non-rune item for 0,1
 				for(int i = 0; i < 2; i++)
 				{
@@ -14264,7 +14349,7 @@ public class UltimaRando
 					}
 					j++;
 				}
-			}
+			//}
 		}
 		ArrayList<Byte> stones = new ArrayList<Byte>(2);
 		if((mode & 16) == 16)  //altar rooms
@@ -14376,7 +14461,7 @@ public class UltimaRando
 		return rv;
 	}
 	
-	private static byte getRandomItem(int alreadyPlaced) //use -1 if alreadyPlaced is null
+	public static byte getRandomItem(int alreadyPlaced) //use -1 if alreadyPlaced is null
 	{
 		byte r = (byte) alreadyPlaced;
 		while(r == alreadyPlaced)
@@ -14476,8 +14561,10 @@ public class UltimaRando
 		t <<= 2;
 		System.out.println("SHL:" + t);*/
 		//testAreaCenterLine();
+		
 		shrineDests = initShrineDests();
 		setSeed((long) (Math.random() * Long.MAX_VALUE));  //this should be the only call to Math.random()
+		//testERoom();
 		//softlockSuperTest(10000);
 		/*NESRom nr = null;
 		try
