@@ -1745,7 +1745,7 @@ class NESRom
 	private int putChestGrabber(int startLoc)   
 	{
 		//putItemFindFx();
-		String fx = "a9 b1 48 ae c3 06 bd fd bf c5 68 d0 1a ";  
+		String fx = "a9 b1 48 ae c3 06 bd fd bf c5 68 d0 20 ";  
 		fx += "bd fa bf 85 6b ";
 		fx += "29 36 c9 36 f0 08 ";  //fungus and manroot check (skip the chest set if item is fungus or manroot)
 		fx += "ad de 68 09 02 8d de 68 ";
@@ -1949,6 +1949,8 @@ class NESRom
 	public void changeAbyssLength(int val, int dungPostProcessingLoc)  //uses only bank 9 if dungeons are randomized, else uses ff78-ff88
 	{
 		val--;
+		if(val == 8)
+			val = (int) (UltimaRando.rand() * 8);
 		String a1 = "79 01 29 3f 09 1f 1b 09";
 		byte[] floorStart = strToBytes(a1);
 		
@@ -13342,11 +13344,14 @@ class RandoWindow extends JFrame implements ActionListener
 		xx.setMaxVal(8);
 		opts.add(xx);  //6
 		
-		String[] abyssM = new String[7];
-		String[] abyssF = new String[7];
-		for(int i = 2; i < 9; i++)
+		String[] abyssM = new String[8];
+		String[] abyssF = new String[8];
+		for(int i = 2; i <= 9; i++)
 		{
-			abyssM[i - 2] = "Start the Abyss at Floor " + i;
+			if(i == 9)
+				abyssM[i - 2] = "Start the Abyss at a random floor";
+			else
+				abyssM[i - 2] = "Start the Abyss at Floor " + i;
 			abyssF[i - 2] = "Y" + i;
 		}
 		opts.add(new FlagPanel("Shorten Abyss", abyssM, abyssF, false, false, this));  //7

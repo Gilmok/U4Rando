@@ -49,7 +49,7 @@ K:  Turn off random encounters.  Only turns off random encounters on the overwor
 
 y:  Allow entire party into the Abyss.  Allows you to take your entire party with you to the Abyss.
 
-Y#: Shorter Abyss.  Start the abyss at floor #.  Valid values are 1-8.  You will start in the same location as though you were entering that floor from the floor above in a normal run.
+Y#: Shorter Abyss.  Start the Abyss at floor #.  Valid values are 1-8.  You can also put 9 to start at a random floor.  You will start in the same location as though you were entering that floor from the floor above in a normal run.
 
 P#:  Randomize shop locations.  The # is treated as follows:
 0:  Shuffle shop locations.  Each shop is randomly placed within the shops on the map.  Any shop can be anything, and there can be more than one of the same type of shop within cities.  For example, Jhelom can have the Trinsic Weapon shop as well as the Britain Weapon shop.
