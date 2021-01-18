@@ -5,10 +5,10 @@ Download all the files and put them into the same directory.  If you have a .cfg
 See the FAQ for usage.
 
 New in ver 1.62
-  -Sailors can now be flagged as tough (the wrong monster, probably some villager, was being made tough instead)
-  -The final room in the abyss does not allow you to regenerate mana if all encounter rooms and/or all dungeon floors
-   are cursed
-  -I am requiring use of a 64-bit JVM to run this to better enforce that the same seeds output the same ROMS.
+  - Sailors can now be flagged as tough (the wrong monster, probably some villager, was being made tough instead)
+  - The final room in the abyss does not allow you to regenerate mana if all encounter rooms and/or all dungeon floors
+    are cursed
+  - I am requiring use of a 64-bit JVM to run this to better enforce that the same seeds output the same ROMS.
 
 New in ver 1.61 (Cheater edition)
   - You can now output a spoiler list for the search spot items
