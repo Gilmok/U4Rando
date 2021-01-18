@@ -2,8 +2,8 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>C:\Users\AaronX\Desktop\U4RandoStuff\U4Rando.jar</jar>
-  <outfile>C:\Users\AaronX\Desktop\U4RandoStuff\U4Rando.exe</outfile>
+  <jar>C:\Users\aearm\Desktop\U4RandoStuff\U4Rando.jar</jar>
+  <outfile>C:\Users\aearm\Desktop\U4RandoStuff\U4Rando.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
@@ -18,9 +18,9 @@
     <path></path>
     <bundledJre64Bit>false</bundledJre64Bit>
     <bundledJreAsFallback>false</bundledJreAsFallback>
-    <minVersion>1.6</minVersion>
+    <minVersion>1.6.1</minVersion>
     <maxVersion></maxVersion>
     <jdkPreference>preferJre</jdkPreference>
-    <runtimeBits>64/32</runtimeBits>
+    <runtimeBits>64</runtimeBits>
   </jre>
 </launch4jConfig>
