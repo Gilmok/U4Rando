@@ -123,7 +123,7 @@ S#:  Randomize initial starting spells.  This is treated as a bit field with the
 
 x:  The Cheater flag.  Outputs a .txt file spoiler checklist of all locations and their items.  For readability, use WordPad to open this file (not Notepad).
 
-New in ver 1.8: Seed Rank
+New in ver 1.7: Seed Rank
 A game's seed rank is determined by how difficult the seed is.  You can get up to 10 seed rank points.
 1 point for randomizing the overworld map
 1 point for randomizing dungeon layouts
