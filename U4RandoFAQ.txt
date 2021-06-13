@@ -1,4 +1,4 @@
-Ultma 4 Quest of the Avatar Randomizer
+Ultima 4 Quest of the Avatar Randomizer
 
 I.  Motivation
 Dragon Warrior randomizer is one of the most fun and popular randomizers out right now, as winning it is more about strategy and planning rather than pure execution.  However, what if there were a game with many more search spots, virtually no grinding necessary, and a little bit of first-person dungeon crawling goodness?  In Ultima 4: Quest of the Avatar, you are always in go mode.  This game is about efficient movement to all the places you need to go, with a little bit of risk-reward along the way.
@@ -122,6 +122,15 @@ S#:  Randomize initial starting spells.  This is treated as a bit field with the
 4:  Remove the Blink spell from the game.
 
 x:  The Cheater flag.  Outputs a .txt file spoiler checklist of all locations and their items.  For readability, use WordPad to open this file (not Notepad).
+
+New in ver 1.8: Seed Rank
+A game's seed rank is determined by how difficult the seed is.  You can get up to 10 seed rank points.
+1 point for randomizing the overworld map
+1 point for randomizing dungeon layouts
+1 point for each 25% of enemies that are tough (up to 4 points; you gain a minimum of 2 points if you toughen all dungeon monsters)
+1 point for each 50% of cursed encounter rooms (up to 2 points)
+1 point for each 50% of cursed dungeon floors (up to 2 points)
+Try out various point totals to get the different seed ranks and see your rank in the end credits!
 
 IV.  Notes on map generation
 I didn't know what to put here so I decided to simply describe the map generation algorithm at the end.  Just note that the algorithm is slightly biased toward placing things on the sea, as a lot of things are reqired to be there, and that the game uses visibility zones to control what is visible as you traverse the map.  The abyss is always on a crater, and the map has a maximum of three accessible craters to check. Currently, no attempt is made to place shrines and dungeons closest to their corresponding virtue towns, so anything can be anywhere.  Also, I have not yet changed using visibility zone 2 for forests, which I have noticed can cause problems when restoring visibility.

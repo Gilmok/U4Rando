@@ -62,6 +62,8 @@ class NESRom
 	Map gameMap;
 	private byte[] altarItems;
 	
+	private byte seedRank;
+	
 	NESRom(String fn) throws Exception
 	{
 		filename = fn;
@@ -276,7 +278,10 @@ class NESRom
 		OpeningScreen os = new OpeningScreen(this);
 		os.replaceOpenScreen(this);
 		altarItems = strToBytes("0d 0e 0f");
+		seedRank = 0;
 		fixNegate();
+		fixLevelUp();
+		fixShephardExp();
 		UltCharacter ch = new UltCharacter();
 		boolean randomizeMap = false;
 		boolean randomizeMoongates = false;
@@ -294,6 +299,7 @@ class NESRom
 		int[] cursedAreas = new int[3];
 		boolean britBalloon = false;
 		boolean changeSpellTeachers = false;
+		boolean allEnemiesTough = false;
 		int changeShops = -1;
 		int dungeonPostProcessing = -1;
 		LinkedHashMap<String, Integer> flagMap = new LinkedHashMap<String, Integer>();
@@ -392,16 +398,28 @@ class NESRom
 				if(val == 8)
 				{
 					toughenEnemies(-1);
+					allEnemiesTough = true;
+					seedRank += 4;
 					break;
 				}
 				int eChangeAmt = 0;
 				if((val & 1) == 1)
+				{
 					eChangeAmt += 10;
+					seedRank++;
+				}
 				if((val & 2) == 2)
+				{
 					eChangeAmt += 20;
+					seedRank += 2;
+				}
 				ArrayList<Integer> lstStillWeak = toughenEnemies(eChangeAmt);
 				if((val & 4) == 4)
+				{
 					toughenDungeonSet(lstStillWeak);
+					if(seedRank < 2)
+						seedRank = 2;
+				}
 				break;
 			case 'F':
 				changeEncounterRoomEnemies();
@@ -539,6 +557,7 @@ class NESRom
 		{
 			ds = UltimaRando.randomizeDungeons(this);
 			dungeonPostProcessing = this.changeDungeonBlock(ds, randomizeERooms);
+			seedRank++;
 		}
 		if(usefulRunes)
 			changeShrines();
@@ -548,7 +567,7 @@ class NESRom
 		//randomize map and moongates
 		if(randomizeMap || resizeMap == 1)
 		{
-			
+			seedRank++;
 			Map m = new Map(resizeMap);
 			if(resizeMap != 0)
 			{
@@ -580,6 +599,7 @@ class NESRom
 			byte[][] mgate = getRandomMoongates();
 			changeMoongateLocs(mgate[0], mgate[1]);
 		}
+		insertCreditsText();
 		if(outFileName == null)
 		{
 			return null;
@@ -637,15 +657,16 @@ class NESRom
 		byte[] erooms = new byte[9];
 		int eroomsCursed = 0;
 		if((cursedAreas[0]  & 1) == 1)
-			eroomsCursed += 17;
+			eroomsCursed += 18;
 		if((cursedAreas[0] & 2) == 2)
-			eroomsCursed += 34;
+			eroomsCursed += 35;
 		if(cursedAreas[0] == 4)
 		{
-			eroomsCursed = 69;
+			eroomsCursed = 70;
 			for(int i = 0; i < 8; i++)
 				erooms[i] = -1;
-			erooms[8] = 31;
+			erooms[8] = 63;
+			//seedRank += 2;
 		}
 		else
 		{
@@ -677,7 +698,7 @@ class NESRom
 			eroomsCursed = 69;
 			for(int i = 0; i < 8; i++)
 				erooms[i] = -1;
-			erooms[8] = 31;
+			erooms[8] = 63;
 		}
 		else
 		{
@@ -697,7 +718,7 @@ class NESRom
 		//entire dungeons
 		boolean[] fullDung = new boolean[8];
 		if(cursedAreas[2] == 9)
-			cursedAreas[2] = (int) (UltimaRando.rand() * 9);
+			cursedAreas[2] = (int) (UltimaRando.rand() * 8);
 		for(int i = 0; i < cursedAreas[2]; i++)
 		{
 			while(true)
@@ -713,6 +734,33 @@ class NESRom
 				break;
 			}
 		}
+		
+		//count up cursed e-rooms and floors for seed rank
+		int total = 0;
+		for(int i = 0; i < dfloors.length; i++)  //floors
+		{
+			byte b = dfloors[i];
+			for(int j = 0; j < 8; j++)
+				if((b & (1 << j)) != 0)
+					total++;
+		}
+		if(total == 64)
+			seedRank += 2;
+		else if(total >= 32)
+			seedRank++;
+		
+		total = 0;
+		for(int i = 0; i < erooms.length; i++)  //floors
+		{
+			byte b = erooms[i];
+			for(int j = 0; j < 8; j++)
+				if((b & (1 << j)) != 0)
+					total++;
+		}
+		if(total == 70)
+			seedRank += 2;
+		else if(total >= 35)
+			seedRank++;
 		
 		//now the actual cursing part
 		//on page 9, just before the character catch code, put the function that checks the area for MP gain 
@@ -735,7 +783,7 @@ class NESRom
 		for(int i = 0; i < bts.length; i++)
 			romData[loc + i] = bts[i];
 		
-		//copy necessary data - @163839
+		//copy necessary data - @163839 (end of page 9)
 		for(int i = 0; i < dfloors.length; i++)
 			romData[163839 + i] = dfloors[i];
 		for(int i = 0; i < erooms.length; i++)
@@ -746,6 +794,17 @@ class NESRom
 		bts = strToBytes(fx);
 		writeBytes(bts, "f:fd96");
 		
+	}
+	
+	private boolean allCursed()
+	{
+		for(int i = 163839; i < 163855; i++)
+			if(romData[i] != -1)
+				return false;
+		if(romData[163855] == 63)
+			return true;
+		else
+			return false;
 	}
 	
 	private boolean curseERoom(int r, byte[] erooms)
@@ -1495,22 +1554,26 @@ class NESRom
 		romData[218828] = g2;
 	}
 	
-	public void changeChestGold(int newVal) //uses ffa9-ffb3
+	public void changeChestGold(int newVal) //uses ffa9-ffaf
 	{
 		if(newVal <= 0)
 			return;
 		if(newVal <= 6)
 			newVal *= 25;
-		String nvs = Integer.toHexString(newVal);
-		String ff = "69 " + nvs + " e8 e8 9d 01 01 6d 27 68 60";
+		String nvs = Integer.toHexString(newVal + 1);
+		//String ff = "69 " + nvs + " e8 e8 9d 01 01 6d 27 68 60";  not a function call; edit a micro-function instead
 		//String f2 = "ac 15 68 a9 63 99 90 68 99 98 68 20 d2 cc 60";
+		String ff = "ab ff a9 " + nvs + " 4c 76 c6";  //add the appropriate amount and resume the event chain
 		byte[] fcb = strToBytes(ff);
-		int ff1 = 262073;
+		int ff1 = 262073;  //f:ffa9
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
-		String fcall2 = "20 a9 ff";  //->ffa9
+		String fcall2 = "a9 ff";  //->ffa9  edit the "gold chest" micro function to do this (replace calls to c672)
 		fcb = strToBytes(fcall2);
-		ff1 = 248437;
+		ff1 = findMemLoc("0:aeb4");  //0:aeb4 - open outside chest
+		for(int i = 0; i < fcb.length; i++)
+			romData[ff1 + i] = fcb[i];
+		ff1 = findMemLoc("9:9979");  //9:9979 - open dungeon chest
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
 	}
@@ -1534,6 +1597,52 @@ class NESRom
 		ff1 = 218771;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+	}
+	
+	public void fixShephardExp()  //preserves Shephard exp at the end of each battle
+	{
+		//re-write the function at 9:ae3a
+		String fx = "a0 07 b9 c9 68 29 fd 99 c9 68 88 10 f5 60 ea ea ea";
+		byte[] fxb = strToBytes(fx);
+		int fl = findMemLoc("9:ae3a");
+		for(int i = 0; i < fxb.length; i++)
+			romData[fl + i] = fxb[i];
+	} 
+	
+	public void fixLevelUp()  //ensures that bonuses from all levels are gained
+	{
+		//at 1:b9d1, move the next 17 bytes back 3 bytes
+		int loc1 = findMemLoc("1:b9ce");
+		for(int i = 0; i < 17; i++)
+		{
+			/*String s1 = Integer.toHexString(romData[loc1 + i] & 255);
+			String s2 = Integer.toHexString(romData[loc1 + 3 + i] & 255);
+			System.out.println(s1 + "=>" + s2);*/
+			romData[loc1 + i] = romData[loc1 + 3 + i];
+		}
+		loc1 += 17;
+		//insert your function call here
+		byte[] fcl = strToBytes("4c e0 bf");
+		for(int i = 0; i < fcl.length; i++)
+		{
+			/*String s1 = Integer.toHexString(romData[loc1 + i] & 255);
+			String s2 = Integer.toHexString(fcl[i] & 255);
+			System.out.println(s1 + "=>" + s2);*/
+			romData[loc1 + i] = fcl[i];
+		}
+		//change the code at the end to respect the function call
+		fcl = strToBytes("60 ea ea");
+		loc1 = findMemLoc("1:ba12");
+		for(int i = 0; i < fcl.length; i++)
+			romData[loc1 + i] = fcl[i];
+		//now the function
+		String str = "84 02 bc 68 68 c4 02 f0 06 " +
+					 "20 e2 b9 c8 d0 f6 " + 
+				     "a8 a5 02 9d 68 68 98 a4 02 4c a7 fe";
+		fcl = strToBytes(str);
+		loc1 = findMemLoc("1:bfe0");
+		for(int i = 0; i < fcl.length; i++)
+			romData[loc1 + i] = fcl[i];
 	}
 	
 	public void grantAvatarhoodAtStart()
@@ -2054,13 +2163,13 @@ class NESRom
 	//returns the list of enemies not toughened
 	public ArrayList<Integer> toughenEnemies(int amt)  //can be 10, 20, or 30
 	{
-		//the set of enemies that can be toughened are the first 8 (final boss), sailor(14), pirate(18), 
+		//the set of enemies that can be toughened are the first 8 (final boss), sailor(13), pirate(18), 
 		//and 0x23-0x41 (35-65), inclusive
 		//we don't toughen other villagers or animals
 		ArrayList<Integer> enemies = new ArrayList<Integer>(41);
 		for(int i = 1; i <= 8; i++)
 			enemies.add(i);
-		enemies.add(14);
+		enemies.add(13);
 		enemies.add(18);
 		for(int i = 35; i <= 65; i++)
 			enemies.add(i);
@@ -3047,6 +3156,27 @@ class NESRom
 			romData[loc + i] = bts[i];
 	}
 	
+	private void viewBytes(int loc, int nBytes)
+	{
+		int n = 0;
+		for(int i = 0; i < nBytes; i++)
+		{
+			String s = Integer.toHexString(romData[loc] & 255);
+			if(s.length() == 1)
+				s = "0" + s;
+			s += " ";
+			System.out.print(s);
+			loc++;
+			n++;
+			if(n == 50)
+			{
+				System.out.println();
+				n = 0;
+			}
+		}
+		System.out.println();
+	}
+	
 	public byte[] strToBytes(String in)
 	{
 		in = in.toLowerCase();
@@ -3098,6 +3228,364 @@ class NESRom
 				matched = 0;
 			}
 		}
+	}
+	
+	private byte[] convertNewEndText()
+	{
+		String aa = "ULTIMA IV NES RANDOMIZER\nBY GILMOK\n" +
+				 "TESTING\nYOGIDAMONK\nSQUIBBONS\n" +
+				 "PROMOTION\nSQUIBBONS\nFENYX4\n";// +
+		/*if(tgh)
+			aa += "THOU ART NOT A WIMP\n"; //+
+		if(curse)
+			aa += "THOU ART TRULY BRAVE\n";*/
+		aa += "SEED RANK\n";
+		String[] rankStr = {"F. SHEPHERD", "E. SPOONY BARD", "D. WANDLESS DRUID", "C. FIGHTING BARD", "B. PALADIN", "A. WANDED MAGE", "S. LORD BRITISH"};
+		int[] ranks = {0,1,1,1,2,2,3,3,4,5,6};
+		int rank = ranks[seedRank];
+		aa += rankStr[rank];
+		aa += "\n\n";
+		
+		ArrayList<Byte> ol = new ArrayList<Byte>();
+		//byte[] out = new byte[aa.length() + 24];
+		//int o = 0;//oc,oe,oa,10
+		int[] placements = {5,4,8,6, 5,8,8,10,8,12, 5,14,8,16,8,18, 5,22,8,24};
+		int pl  = 2;
+		ol.add((byte) 5);
+		ol.add((byte) 4);
+		for(int i = 0; i < aa.length(); i++)
+		{
+			char c = aa.charAt(i);
+			if(c >= 'A')
+			{
+				ol.add( (byte) (c - 'A' + 1));
+				//o++;
+			}
+			else if(c == '.')
+			{
+				ol.add((byte) 27);
+			}
+			else if(c == ' ')
+			{
+				ol.add( (byte) (-128));
+				//o++;
+			}
+			else if(c == '4')
+			{
+				ol.add( (byte) (-123));
+				//o++;
+			}
+			else  // newline
+			{
+				ol.add( (byte) 0);
+				//o++;
+				if(aa.charAt(i + 1) == '\n')  //put a 2nd 0 and skip it
+				{
+					ol.add((byte) 0);
+					//o++;
+					break;
+				}
+				ol.add((byte) placements[pl]);
+				pl++;
+				//o++;
+				ol.add((byte) placements[pl]);
+				pl++;
+				//o++;
+			}
+		}
+		byte[] out = new byte[ol.size()];
+		for(int i = 0; i < ol.size(); i++)
+			out[i] = ol.get(i);
+		return out;
+	}
+	
+	public void testEndCompress()
+	{
+		int mem1 = findMemLoc("d:b45d");
+		int mem2 = findMemLoc("d:b5f1");
+		byte[] in = getData(mem1, mem2);
+		
+		System.out.println("End compression must be less than " + in.length + " bytes.");
+		
+		ArrayList<Byte> b1 = compressEnd4Bits(in);
+		b1.addAll(compressEnd4Bits(convertNewEndText()));
+		System.out.println("Compression test 4 bits");
+		System.out.println(b1.size());	
+		
+		in = getData(mem1, mem2);
+		ArrayList<Byte> b2 = compressEnd5Bits(in);
+		b2.addAll(compressEnd5Bits(convertNewEndText()));
+		System.out.println("Compression test 5 bits");
+		System.out.println(b2.size());	
+		
+	}
+	
+	
+	
+	public ArrayList<Byte> compressEnd4Bits(byte[] in)
+	{
+		ArrayList<Byte> out = new ArrayList<Byte>();
+		byte curr = 0;
+		int[] low = {0,12,24,36};
+		int[] hi = {11,23,35,47};
+		byte ctrl = 12;  //12=0-11; 13=12-23; 14=24-35; 15=36-47;
+		byte lctrl = 0;
+		int used = 0;
+		int totalUsedBits = 0;
+		int controlBits = 0;
+		for(int i = 0; i < in.length; i++)
+		{
+			if(in[i] == -128)
+				in[i] = 46;
+			else if(in[i] == -123)
+				in[i] = 47;
+			while(in[i] < low[ctrl - 12])
+				ctrl--;
+			while(in[i] > hi[ctrl - 12])
+				ctrl++;
+			if(ctrl != lctrl)
+			{
+				used += 4;
+				totalUsedBits += 4;
+				controlBits += 4;
+				if(used > 8)
+				{
+					out.add(curr);
+					curr = 0;
+					used = 0;
+				}
+				else
+					curr <<= 4;
+				curr |= ctrl;
+				lctrl = ctrl;
+			}
+			used += 4;
+			totalUsedBits += 4;
+			if(used > 8)
+			{
+				out.add(curr);
+				curr = 0;
+				used = 0;
+			}
+			else
+				curr <<= 4;
+			curr |= (byte) (in[i] - low[ctrl - 12]);
+		}
+		if(used > 0)
+			out.add(curr);
+		System.out.println("Total used bits = " + totalUsedBits);
+		System.out.println("Bits used as control = " + controlBits);
+		System.out.println("Total used bytes should be " + Math.ceil(totalUsedBits / 8.0));
+		return out;
+		
+	}
+	
+	public void insertCreditsText()
+	{
+		int mem1 = findMemLoc("d:b45d");
+		int mem2 = findMemLoc("d:b5f1");
+		byte[] in = getData(mem1, mem2);
+		ArrayList<byte[]> inblk = new ArrayList<byte[]>();
+		boolean oneZero = false;
+		int start = 0;
+		//divide up the credits into blocks
+		for(int i = 0; i < in.length; i++)
+		{
+			if(in[i] != 0)
+			{
+				oneZero = false;
+				continue;
+			}
+			else if(in[i] == 0)
+			{
+				if(!oneZero)
+					oneZero = true;
+				else
+				{
+					byte[] subblk = new byte[i - start + 1];
+					for(int j = start; j <= i; j++)
+						subblk[j - start] = in[j];
+					inblk.add(subblk);
+			        oneZero = false;
+			        start = i + 1;
+				}
+			}
+		}
+		//insert the block
+		byte[] nt = convertNewEndText();
+		inblk.add(inblk.size() - 1, nt);
+		int fsz = 0;
+		for(int i = 0; i < inblk.size(); i++)
+			fsz += inblk.get(i).length;
+		
+		//collate the blocks
+		byte[] fblk = new byte[fsz];
+		int al = 0;
+		for(int i = 0; i < inblk.size(); i++)
+		{
+			//fsz += inblk.get(i).length;
+			byte[] aa = inblk.get(i);
+			for(int j = 0; j < aa.length; j++)
+			{
+				fblk[al] = aa[j];
+				al++;
+			}
+		}
+		
+		//compress the blocks
+		ArrayList<Byte> allOut = compressEnd5Bits(fblk);
+		System.out.println("Putting " + allOut.size() + " bytes in credits text");
+		//output the blocks
+		mem1 = findMemLoc("d:b445");
+		for(int i = 0; i < allOut.size(); i++)
+		{
+			romData[mem1] = allOut.get(i);
+			mem1++;
+		}
+		
+		System.out.println((mem2 - mem1) + " bytes free");
+		
+		String faddr1 = Integer.toHexString((mem1 % 16384) + 32752);  //32768 - 16
+		String[] f1 = {faddr1.substring(0, 2), faddr1.substring(2,4)};
+		
+		int t1 = mem1;
+		
+		//at d:bff0 the short initializer - 16b
+		String fx = "a9 44 85 f4 a9 b4 85 f5 a9 78 85 f7 20 e4 bf 60";
+		byte[] bts = strToBytes(fx);
+		writeBytes(bts, "d:bff0");
+		
+		
+		//at d:bfd0, the 5bit shift function - 28b
+		fx = "b1 f4 85 f1 a9 07 85 f3 ca 10 01 60 26 f1 26 f0 c6 f3 10 f4 e6 f4 d0 e8 e6 f5 d0 e4";
+		bts = strToBytes(fx);
+		writeBytes(bts, "d:bfd0");
+		
+		//at d:b5bc, put the decompressor - 53b old, 44 new
+		fx = "a2 05 20 d8 bf "
+				+ "a5 f0 c9 1d f0 06 "
+				+ "c9 1e f0 06 d0 06 "  //17
+				+ "a9 80 d0 02 "
+				+ "a9 85 "  //23
+				+ "91 f6 c9 00 d0 09 "  //29
+				+ "c6 f6 b1 f6 d0 01 60 e6 f6 e6 f6 "  //40
+				+ "84 f0 d0 d4";  //44 
+		bts = strToBytes(fx);
+		//writeBytes(bts, mem1);
+		for(int i = 0; i < bts.length; i++)
+		{
+			romData[mem1] = bts[i];
+			mem1++;
+		}
+		
+		String faddr2 = Integer.toHexString((mem1 % 16384) + 32752);  //32768 - 16
+		String[] f2 = {faddr2.substring(0, 2), faddr2.substring(2,4)};
+		
+		int tt2 = mem1;
+		
+		//after the previous, put the flow controller (jumped to, jumped out of) - 17b
+		fx = "b1 f6 f0 0a 85 12 c8 b1 f6 85 13 4c 01 b4 4c 2d b4";
+		bts = strToBytes(fx);
+		for(int i = 0; i < bts.length; i++)
+		{
+			romData[mem1] = bts[i];
+			mem1++;
+		}
+		
+		//at d:b3ec, get it started - 18b
+		fx = "a5 f5 d0 03 20 f0 bf a0 00 84 f0 84 f6 20 " + f1[1] + " " + f1[0] + " 84 f6 4c " + f2[1] + " " + f2[0];
+		fx += " 98 ea ea";
+		bts = strToBytes(fx);
+		writeBytes(bts, "d:b3ec");
+		int t2 = findMemLoc("d:b3ec");
+		
+		//finally, at d:b413, point the cpu to load from f6
+		bts = strToBytes("f6");
+		writeBytes(bts, "d:b413");
+		
+		//d:b42c, change the branch back to point to b3fe
+		bts = strToBytes("d1");
+		writeBytes(bts, "d:b42c");
+		
+		//d:b3b4, change to add one more screen at the end credits (was 12, is now 13)
+		bts = strToBytes("0d");
+		writeBytes(bts, "d:b3b4");
+		
+		//testing
+		int xx = findMemLoc("d:" + f1[0] + f1[1]);
+		System.out.println("findMemLoc = " + xx + " function at " + t1);
+		xx = findMemLoc("d:" + f2[0] + f2[1]);
+		System.out.println("findMemLoc = " + xx + " function at " + tt2);
+		/*viewBytes(t1, 70);
+		viewBytes(t2, 25);*/
+	}
+	
+	public ArrayList<Byte> compressEnd5Bits(byte[] in)
+	{
+		ArrayList<Byte> out = new ArrayList<Byte>();
+		int curr = 0;
+		int[] low = {0,31};
+		int[] hi = {32,63};
+		byte ctrl = 30;  //30=0-29; 31=30-59
+		byte lctrl = 30;
+		int bitsLeft = 8;
+		int totalUsedBits = 0;
+		int controlBits = 0;
+		for(int i = 0; i < in.length; i++)
+		{
+			if(in[i] == -128)
+				in[i] = 29;
+			else if(in[i] == -123)   //this eliminates need for control bits
+				in[i] = 30;
+			while(in[i] < low[ctrl - 30])
+				ctrl--;
+			while(in[i] > hi[ctrl - 30])
+				ctrl++;
+			if(ctrl != lctrl)
+			{
+				System.out.println("At #" + i + " found value " + in[i]);
+				bitsLeft -= 5;
+				totalUsedBits += 5;
+				controlBits += 5;
+				curr <<= 5;
+				curr |= ctrl;
+				lctrl = ctrl;
+				if(bitsLeft <= 0)
+				{
+					int x = (curr >> (bitsLeft * -1));
+					byte cc = (byte) (x & 255);
+					out.add(cc);
+					curr &= 65535;
+					bitsLeft += 8;
+				}
+				//else
+				
+			}
+			bitsLeft -= 5;
+			totalUsedBits += 5;
+			curr <<= 5;
+			curr |= (byte) (in[i] - low[ctrl - 30]);
+			if(bitsLeft <= 0)
+			{
+				int x = (curr >> (bitsLeft * -1));
+				byte cc = (byte) (x & 255);
+				out.add(cc);
+				curr &= 65535;
+				bitsLeft += 8;
+			}
+			//else
+			
+		}
+		if(bitsLeft > 0)
+		{
+			//int mask = (1 << used) - 1;
+			byte  cc = (byte) ((curr << bitsLeft) & 255);
+			out.add(cc);
+		}
+		System.out.println("Total used bits = " + totalUsedBits);
+		System.out.println("Bits used as control = " + controlBits);
+		System.out.println("Total used bytes should be " + Math.ceil(totalUsedBits / 8.0));
+		return out;
 	}
 }
 
@@ -10945,6 +11433,8 @@ class Map
 								double r = UltimaRando.rand();
 								sp = (int) (r * pts.size());
 								px = pts.get(sp);
+								if(px.x < 8 || px.y < 8)
+									continue;
 							} while(ensurePOIUnique(new Rectangle(px.x - 1, px.y - 1, 3, 3), true) == false);
 							if(px != null)
 							{
@@ -10977,6 +11467,8 @@ class Map
 							int dx = (int) (UltimaRando.rand() * 40 - 20);
 							int dy = (int) (UltimaRando.rand() * 40 - 20);
 							px = new Point(zones.get(zn).getCenterX() + dx, zones.get(zn).getCenterY() + dy);
+							if(px.x < 8 || px.y < 8)
+								continue;
 						} while(ensurePOIUnique(new Rectangle(px.x - 1, px.y - 1, 3, 3), true) == false);
 						for(int yy = -1; yy <= 1; yy++)
 							for(int xx = -1; xx <= 1; xx++)
@@ -14571,16 +15063,19 @@ public class UltimaRando
 		setSeed((long) (Math.random() * Long.MAX_VALUE));  //this should be the only call to Math.random()
 		//testERoom();
 		//softlockSuperTest(10000);
-		/*NESRom nr = null;
-		try
-		{
-			nr = new NESRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
+		//NESRom nr = null;
+		//try
+		//{
+			//nr = new NESRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
+			//nr = new NESRom("C:\\Users\\aearm\\Desktop\\fceux-2.2.2-win32\\Ultima - Quest of the Avatar (U).nes");
+			//nr.testEndCompress();
 			//nr = nr.randomize("M9Z1", "C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Deltima.nes");
 			/*if(nr.gameMap != null)
 			{
 				MapWindow mw = new MapWindow(nr.gameMap, true);
 				mw.setPOIList(nr.getPOIList());
 			}*/
+		//}
 			/*nr = new NESRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\U4Rando.6003455369068555264.MO.nes");
 			System.out.println(nr.getFinalSearchLocData());
 			System.out.println(nr.getODLocations());
@@ -14591,8 +15086,8 @@ public class UltimaRando
 			//Dungeon[] ds = UltimaRando.randomizeDungeons(nr);
 			//nr.changeDungeonBlock(ds);
 			//nr.dumpRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Deltima.nes");
-		//}
-		/*catch(Exception ex)
+		/*}
+		catch(Exception ex)
 		{
 			System.err.println(ex.getMessage());
 			ex.printStackTrace(System.err);
@@ -14837,6 +15332,7 @@ public class UltimaRando
 		System.out.println(s);*/
 		//testShopSwaps();
 		//testShopType();
+		
 		RandoWindow rw = new RandoWindow();
 		
 	}
