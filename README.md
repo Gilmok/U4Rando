@@ -4,6 +4,13 @@ Ultima 4 NES Randomizer
 Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
 
+New in ver 1.7
+  - Seed Ranks:  A seed is now ranked according to its difficulty.  You can see your rank in the end credits.
+  - Selling weapons and armor now give you the proper amount of gold
+  - Levelling up multiple times increases your stats appropriately
+  - The Shepherd EXP bug is now fixed
+  - The credits section now gives credits to important people in the making of this randomizer
+
 New in ver 1.62
   - Sailors can now be flagged as tough (the wrong monster, probably some villager, was being made tough instead)
   - The final room in the abyss does not allow you to regenerate mana if all encounter rooms and/or all dungeon floors
