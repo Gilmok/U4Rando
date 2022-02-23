@@ -86,6 +86,7 @@ r#: Randomize items in search locations.  Like 'R', this flag is also a bit fiel
 1: Include Altar Room Items (the three Keys) in search spot randomization.
 2: Include the item given to you for turning in the Scale.
 
+
 Notes: 
 - These two flags eliminate the new moons check on the new moons search spot (that contains the black stone of Humility) as that check was tied to the item itself rather than the search spot; you can therefore check the new moons moongate search spot at anytime and get the item
 - It may be possible to get the Scale item twice; however, you can only turn it in once.
@@ -101,6 +102,7 @@ C#:  Boost values of gold chests.  Adds 25 times # to each gold chest you open, 
 c#:  Eilimates cooldowns.  This is a bit field flag.  Values are as follows:
 1:  Eliminates the 60 (times cycles) step cooldown for meditating at a shrine.
 2:  Eliminates the 128 step cooldown for recieving the scale item.
+4: (New in ver 2.0): Eliminates the check for new moons on collecting herbs from herb spots
 
 V#: Randomize initial virtue. The # means the following: 0=set all virtues to 0, 1=set all virtues to the same random number between 0 and 99, 2=Randomize all virtue values, 3=set all virtues to 99.  4=start off as the avatar.  Use V3 or v4 to avoid all that virtue grinding.
 
@@ -131,6 +133,28 @@ A game's seed rank is determined by how difficult the seed is.  You can get up t
 1 point for each 50% of cursed encounter rooms (up to 2 points)
 1 point for each 50% of cursed dungeon floors (up to 2 points)
 Try out various point totals to get the different seed ranks and see your rank in the end credits!
+
+New flags in ver. 2.0:
+q:  Quarterlife flag.  You and your character's HP are cut to 1/4 what they were in the original game.  Giving blood requirements and life loss are also cut to 1/4.  (Enemy damage, enemy HP, and lava damage is NOT cut, though).
+
+J#:  Randomize character join requirements.  Characters join you when you have met the following requirements:
+1: When you achieve partial avatarhood in that character's virtue
+2: When you find the rune of that character's virtue
+3: When you find the stone of that character's virtue
+4: When you find a random herb (Character will tell you)
+5: When you find a random item (Characer will tell you)
+6: A random choice of one of the above for each character.
+Characters will tell you in their rejection text what they need to join you.
+
+h#:  Get rid of Hawkwind's questions and play as:
+1:Mage, 2:Bard, 3:Figher, 4:Druid, 5:Tinker, 6:Paladin, 7:Ranger, 8:Shepherd, or 9: Start as a random characer
+
+u:  Eliminate Spells Unlimited.  Your party will learn spells as soon as their respective spell teacher is found; there is no need to stop by Spells Unlimited to inscribe them in your spellbook.
+
+t:  Combat (or Damage) redesign.  This redesign separates attacks and defenses into physical and magical components, and total damage is equal to the sum of the two.  Magical weapons (weapons with +1 or +2) were given a small magical attack component.  The Sword of Paradise was given a medium sized magical attack component, and the Wand was given a large magical attack component.  For the most part, the redesign maintains overall damage (although strength, dex and int bonuses are now flat bonuses rather than percentage bonuses).  Overall attack and defense values are roughly the same as before. Spells were slightly buffed, except your Tremor spell was nerfed and enemy Tremor was buffed (from base attack to 48).  One notable change is that some enemies are given 100% physical defense, and can only be significantly damaged via magical weapons and attacks.  These are:  Flame, Ghost, Mimic, Wisp, Lich, Phantom and Slime (so be careful out for these)
+
+b: Boss mode for dungeons.  Each stone room requires passing through at least 1 boss room (a room of strong enemies) before getting it.  Enemies in this room are selected from the following pool: Balrog, Reaper, Dragon, Hydra, Gazer, Lich, Zorn, Mimic, Demon, Lizard, and Phantom.  Rooms with 5 or fewer enemies are made up of Balrog, Reaper, Dragon, Hydra, and Gazer.  Useful runes dungeon destinations are changed to be before these boss rooms.
+
 
 IV.  Notes on map generation
 I didn't know what to put here so I decided to simply describe the map generation algorithm at the end.  Just note that the algorithm is slightly biased toward placing things on the sea, as a lot of things are reqired to be there, and that the game uses visibility zones to control what is visible as you traverse the map.  The abyss is always on a crater, and the map has a maximum of three accessible craters to check. Currently, no attempt is made to place shrines and dungeons closest to their corresponding virtue towns, so anything can be anywhere.  Also, I have not yet changed using visibility zone 2 for forests, which I have noticed can cause problems when restoring visibility.

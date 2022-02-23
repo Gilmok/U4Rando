@@ -64,6 +64,11 @@ class NESRom
 	
 	private byte seedRank;
 	
+	ArrayList<Integer> usedSpace;
+	ArrayList<String> usedDesc;
+	//private byte[] enemyTypes;
+	private boolean quarterlife;
+	
 	NESRom(String fn) throws Exception
 	{
 		filename = fn;
@@ -71,6 +76,9 @@ class NESRom
 		setupInventoryList();
 		mapSwap = false;
 		gameMap = null;
+		usedSpace = new ArrayList<Integer>();
+		usedDesc = new ArrayList<String>();
+		//enemyTypes = new byte[65];
 	}
 	
 	public byte[] loadData(String fname) throws Exception
@@ -98,41 +106,41 @@ class NESRom
 		//at f:db80 : point to call method to cap x and y at lower map size (values (eventually) stored at $42, $43))
 		String code = "a5 5e 48 a9 0c 20 31 f3 20 00 bf 68 20 31 f3 b9 00 05 60 ";
 		byte[] bts = strToBytes(code);
-		writeBytes(bts, "f:db80");
+		writeBytes(bts, "f:db80", "Map Resize");
 		
 		//at c:bf00 : the modified method
 		int eUsed = 0;
 		code = "ad 48 04 18 7d 0c da 29 7f 85 04 a8 ad 30 04 18 7d 0e da 29 7f 85 03 20 94 dc 60";
 		bts = strToBytes(code);
 		eUsed += bts.length;
-		writeBytes(bts, "c:bf00");
+		writeBytes(bts, "c:bf00", "Map Resize");
 		
 		//at f:da16, f:da3a, f:da64 each jump to the same method call to cap x screen start and y screen start at lower map size
 		//values stored at $49, $4a
 		code = "4c ed d9";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:da16");
-		writeBytes(bts, "f:da3a");
-		writeBytes(bts, "f:da64");
+		writeBytes(bts, "f:da16", "Map Resize");
+		writeBytes(bts, "f:da3a", "Map Resize");
+		writeBytes(bts, "f:da64", "Map Resize");
 		
 		//at f:d9ed, call the method to cap screen starts
 		code = "a9 0c 20 31 f3 4c 1b bf a9 0c 20 31 f3 4c 26 bf";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:d9ed");
+		writeBytes(bts, "f:d9ed", "Map Resize");
 		
 		//at f:da11, modify the branch back to point to the second jump forward
 		code = "30 e2";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:da11");
+		writeBytes(bts, "f:da11", "Map Resize");
 		
 		//at f:da3d, add in the branch back
 		code = "a9 0c 20 31 f3 4c 4c bf";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:da3d");
+		writeBytes(bts, "f:da3d", "Map Resize");
 		
 		//f:da5f gets the modified branch back
 		code = "30 dc";
-		writeBytes(strToBytes(code), "f:da5f");
+		writeBytes(strToBytes(code), "f:da5f", "Map Resize");
 		
 		//at c:used put the modified method
 		code = "a5 61 c9 81 d0 14 c6 49 20 66 bf a6 2f ca 8a 29 3f 85 2f a9 07 85 31 4c d1 e1 ";  //move right
@@ -143,7 +151,7 @@ class NESRom
 		code += "ad 00 07 c9 e9 d0 06 a5 4a 29 7f 85 4a 60";  //y test function
 		bts = strToBytes(code);
 		eUsed += bts.length;
-		writeBytes(bts, "c:bf1b");
+		writeBytes(bts, "c:bf1b", "Map Resize");
 		
 		String ex = Integer.toString(eUsed + 48896, 16);  //be00->bf00
 		String[] a = {ex.substring(0, 2), ex.substring(2, 4)};
@@ -151,7 +159,7 @@ class NESRom
 		ex = Integer.toString(u2 + 48896, 16);
 		String[] c = {ex.substring(0, 2), ex.substring(2, 4)};
 		
-		//at e:used, put the methods that calculate the starting destination of the block copy
+		//at c:used, put the methods that calculate the starting destination of the block copy
 		code = "29 7f a8 a5 49 85 02 98 ";
 		code += "0a 0a 0a 0a 85 04 a5 02 29 0f 05 04 aa ";
 		code += "98 c9 40 10 04 a9 01 10 02 a9 02 85 06 ";
@@ -161,51 +169,51 @@ class NESRom
 		code += "a0 00 a5 06 c6 06 60";
 		bts = strToBytes(code);
 		int ee = 48896 + eUsed;
-		writeBytes(bts, "c:" + Integer.toHexString(ee));
+		writeBytes(bts, "c:" + Integer.toHexString(ee), "Map Resize");
 		eUsed += bts.length;
 		
 		ex = Integer.toString(eUsed + 48896, 16);
 		String[] b = {ex.substring(0, 2), ex.substring(2, 4)};
 		
-		//at e:used, put the second method
+		//at c:used, put the second method
 		code = "29 7f 85 02 a5 4a a8 ";
 		code += "20 " + c[1] + " " + c[0] + " c6 05 60";
 		bts = strToBytes(code);
 		ee = 48896 + eUsed;
-		writeBytes(bts, "c:" + Integer.toHexString(ee));
+		writeBytes(bts, "c:" + Integer.toHexString(ee), "Map Resize");
 		eUsed += bts.length;
 		
 		//at f:e2ca, put the pair of methods that call the loading of a row or column of tiles that scroll on the screen
 		code = "48 ad 00 07 c9 e9 d0 05 a9 0c 20 31 f3 a5 61 c9 80 90 04 c9 82 90 04 68 6c 00 07 68 6c 02 07 20 " + a[1] + " " + a[0] + " 20 31 f3 20 5f bf 60 ";
 		code += "20 " + b[1] + " " + b[0] + " 20 31 f3 20 ae bf 60";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:e2ca");
+		writeBytes(bts, "f:e2ca", "Map Resize");
 		
 		//change the jump targets at f:e117
 		code = "e9 e2 f3 e2";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:e117");
+		writeBytes(bts, "f:e117", "Map Resize");
 		
 		//change f:e1c8 and f:e1db to call f:e2ca
 		code = "20 ca e2";
-		writeBytes(strToBytes(code), "f:e1db");
-		writeBytes(strToBytes(code), "f:e1c8");
+		writeBytes(strToBytes(code), "f:e1db", "Map Resize");
+		writeBytes(strToBytes(code), "f:e1c8", "Map Resize");
 		
 		//at 1:bf5f and 2:bf5f, put the horizontal copy code
 		code = "b1 02 9d 00 05 c6 05 f0 20 18 ";
 		code += "a5 02 30 06 69 01 29 7f 10 06 69 01 29 7f 09 80 85 02 ";
 		code += "e8 8a 29 f0 c5 04 f0 dc a6 04 4c 5f bf 60";
 		bts = strToBytes(code);
-		writeBytes(bts, "1:bf5f");
-		writeBytes(bts, "2:bf5f");
+		writeBytes(bts, "1:bf5f", "Map Resize");
+		writeBytes(bts, "2:bf5f", "Map Resize");
 		
 		//at 1:bfae and 2:bfae, put the vertical copy code
 		code = "b1 02 9d 00 05 c6 05 f0 28 8a 18 69 10 aa 18 ";
 		code += "a5 02 69 80 90 02 e6 03 85 02 a5 03 ";
 		code += "c9 a0 90 e1 a9 80 85 03 e6 06 a5 06 29 01 18 69 01 20 31 f3 f0 cf 60";
 		bts = strToBytes(code);
-		writeBytes(bts, "1:bfae");
-		writeBytes(bts, "2:bfae");
+		writeBytes(bts, "1:bfae", "Map Resize");
+		writeBytes(bts, "2:bfae", "Map Resize");
 		
 		//modify the function at f:e325 to load the proper tile on the map after leaving an area or battle
 		//it currently fits exactly
@@ -216,24 +224,24 @@ class NESRom
 		code += "8a 29 01 18 f0 02 a9 80 65 02 85 02 ";
 		code += "aa a0 00 60";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:e325");
+		writeBytes(bts, "f:e325", "Map Resize");
 		
 		//modify sprite drawing to properly reflect the smaller map size
 		code = "ea 20 fd e2";
 		bts = strToBytes(code);
-		writeBytes(bts, "0:8174");
+		writeBytes(bts, "0:8174", "Map Resize");
 		
 		code = "e5 1c 29 7f c9 10 60";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:e2fd");
+		writeBytes(bts, "f:e2fd", "Map Resize");
 		
 		code = "ea 20 04 e3";
 		bts = strToBytes(code);
-		writeBytes(bts, "0:8187");
+		writeBytes(bts, "0:8187", "Map Resize");
 		
 		code = "e5 1d 29 7f c9 10 60";
 		bts = strToBytes(code);
-		writeBytes(bts, "f:e304");
+		writeBytes(bts, "f:e304", "Map Resize");
 	}
 	
 	public void changeMap(byte[] newMap)
@@ -294,17 +302,27 @@ class NESRom
 		int randomizeItemLocs = -1;
 		int replaceItems = 0;
 		boolean randomizeERooms = false;
+		boolean randomizeERoomEnemies = false;
+		boolean bossMode = false;
 		boolean usefulRunes = false;
 		int resizeMap = 0;
 		int[] cursedAreas = new int[3];
 		boolean britBalloon = false;
 		boolean changeSpellTeachers = false;
 		boolean allEnemiesTough = false;
+		boolean elimSpellsUL = false;
+		boolean herbCooldown = true;
 		int changeShops = -1;
 		int dungeonPostProcessing = -1;
 		LinkedHashMap<String, Integer> flagMap = new LinkedHashMap<String, Integer>();
-		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E", "C", "V", "Q", "I", "H", "G", "S", "Y", "Z", "N", "U", "F", "K", "L", "v", "r", "e", "f", "d", "c", "y", "x"};
-		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, true, true, true, true, true, true, true, false, false};
+		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E",
+				             "C", "V", "Q", "I", "H", "G", "S", "Y", "Z", "N",
+				             "U", "F", "K", "L", "v", "r", "e", "f", "d", "c",
+				             "y", "x", "h", "J", "t", "b", "q", "u"};
+		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true,
+				             true, true, true, true, true, true, true, true, false, false,
+				             false, false, false, true, true, true, true, true, true, true,
+				             false, false, true, true, false, false, false, false};
 		for(int i = 0; i < okFlags.length; i++)
 			flagMap.put(okFlags[i], -1);
 		while(flags.length() > 0)
@@ -394,6 +412,9 @@ class NESRom
 				replaceItems = val;
 				replaceSearchItems(val);
 				break;
+			case 'q':  //2.0 flag that must be done before enemies are toughened
+				setupQuarterlife();
+				break;
 			case 'E':
 				if(val == 8)
 				{
@@ -424,6 +445,9 @@ class NESRom
 			case 'F':
 				changeEncounterRoomEnemies();
 				break;
+			case 'b':  //2.0 flag
+				bossMode = true;
+				break;
 			case 'C':
 				changeChestGold(val);
 				break;
@@ -432,6 +456,11 @@ class NESRom
 					changeShrineCD();
 				if((val & 2) == 2)
 					changeScaleCD();
+				if((val & 4) == 4)
+				{
+					changeHerbCD();
+					herbCooldown = false;
+				}
 				break;
 			case 'v':
 				randPartAvatar = val;
@@ -479,6 +508,19 @@ class NESRom
 			case 'd':
 				cursedAreas[2] = val;
 				break;
+			case 'J':  //begin version 2.0 flags
+				changeCharacterJoinRequirements(val);
+				break;
+			case 'h':
+				changeCharacter(val);
+				break;
+			case 't':
+				combatRedesign();
+				break;
+			case 'u':
+				elimSpellsUL = true;
+				eliminateSpellsUnlimited(245657);
+				break;
 			}
 			
 		}
@@ -510,18 +552,17 @@ class NESRom
 			if((repl & 2) == 2)
 			{
 				val |= 32;
-				
 			}
 			if((val & 32) == 32)
 				scaleItem = true;
 			if((val & 16) == 16)
-				changeAlterRoomItems(scaleItem);
+				changeAlterRoomItems(scaleItem, herbCooldown, elimSpellsUL);
 			else if(scaleItem)
-				changeScaleItem(-1);
+				changeScaleItem(-1, herbCooldown);
 		}
 		else if((replaceItems & 2) == 2)
 		{
-			changeScaleItem(-1);
+			changeScaleItem(-1, herbCooldown);
 		}
 		if(changeVirtueVal > 0 || randPartAvatar > 0)
 		{
@@ -553,10 +594,11 @@ class NESRom
 		}
 		//randomize dungeons + useful runes
 		Dungeon[] ds = UltimaRando.loadDungeons(this);
-		if(randomizeDungeons)
+		if(randomizeDungeons || bossMode)
 		{
-			ds = UltimaRando.randomizeDungeons(this);
-			dungeonPostProcessing = this.changeDungeonBlock(ds, randomizeERooms);
+			ArrayList<Byte> bosses = new ArrayList<Byte>();
+			ds = UltimaRando.randomizeDungeons(this, randomizeDungeons, bossMode, bosses);
+			dungeonPostProcessing = this.changeDungeonBlock(ds, randomizeERooms, bosses);
 			seedRank++;
 		}
 		if(usefulRunes)
@@ -624,7 +666,43 @@ class NESRom
 		return rv;
 	}
 	
-	private void replaceSearchItems(int val) 
+	private void setupQuarterlife() 
+	{
+		quarterlife = true;
+		//change initial hp; c8->32, 2c->4b 01->00 @0d:95e5
+		int loc = findMemLoc("d:95e5");
+		byte[] from = strToBytes("00 01 c8 2c");
+		byte[] to = strToBytes("00 00 32 4b");
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < from.length; j++)
+			{
+				if(romData[loc + i] == from[j])
+					romData[loc + i] = to[j];
+			}
+		}
+		//change level up hp gain (01:b9cf)
+		loc = findMemLoc("1:b9cf");
+		romData[loc] = 25;
+		//change hp required to give blood (f:d79f, f:d7a4)
+		loc = findMemLoc("f:d79f");
+		romData[loc] = 76;
+		loc = findMemLoc("f:d7a4");
+		romData[loc] = 0;
+		//change give blood hp blood loss (f:d7b7)
+		loc = findMemLoc("f:d7b7");
+		romData[loc] = 25;
+		
+	}
+
+	private void changeHerbCD() 
+	{
+		//eliminate the check on moons
+		byte[] bts = strToBytes("a9 00 ea");
+		writeBytes(bts, "0:afc3", null);
+	}
+
+	private void replaceSearchItems(int val)  //no allocation needed
 	{
 		// TODO Auto-generated method stub
 		byte repl = -1;
@@ -639,7 +717,7 @@ class NESRom
 		{
 			repl = UltimaRando.getRandomItem(repl);
 			byte[] bts = {repl};
-			writeBytes(bts, "4:aaa2");
+			writeBytes(bts, "4:aaa2", null);
 		}
 		if((val & 4) == 4)  //replace the Skull of Mondain
 		{
@@ -782,17 +860,20 @@ class NESRom
 		String[] ff = {cf.substring(0, 2), cf.substring(2, 4)};
 		for(int i = 0; i < bts.length; i++)
 			romData[loc + i] = bts[i];
+		allocate(loc, bts.length, "Cursed Dungeons");
 		
 		//copy necessary data - @163839 (end of page 9)
 		for(int i = 0; i < dfloors.length; i++)
 			romData[163839 + i] = dfloors[i];
+		allocate(163839, dfloors.length, "Cursed Dungeons");
 		for(int i = 0; i < erooms.length; i++)
 			romData[163847 + i] = erooms[i];
+		allocate(163847, erooms.length, "Cursed Dungeons");
 		
 		//at f:fd96, call my function to test for area cursage before replenishing MP
 		fx = "20 2b f3 20 " + ff[1] + " " + ff[0] + " a5 5e 20 31 f3 ea ea";
 		bts = strToBytes(fx);
-		writeBytes(bts, "f:fd96");
+		writeBytes(bts, "f:fd96", "Cursed Dungeons");
 		
 	}
 	
@@ -842,7 +923,7 @@ class NESRom
 		return true;
 	}
 
-	public void noRandomEncounters()
+	public void noRandomEncounters()  //no allocation needed
 	{
 		int loc = this.findMemLoc("f:e94c");
 		String str = "ea ea ea 18 ea ea ea ea";
@@ -851,14 +932,113 @@ class NESRom
 			romData[loc + i] = nops[i];
 	}
 	
+	//this function eliminates Hawkwind and sets your initial character
+	public void changeCharacter(int value)   //no allocation needed
+	{
+		if(value == 9)
+			value = (int) (UltimaRando.rand() * 8 + 1);
+		String vv = "0" + String.valueOf(value);
+		String out = "a2 03 bd aa a3 95 28 ca 10 f8 a0 " + vv + " 4c 31 a2 7a 97 f9 fb";
+		byte[] bts = strToBytes(out);
+		//put this function at D:a39b
+		int loc = findMemLoc("d:a39b");
+		for(int i = 0; i < bts.length; i++)
+			romData[loc + i] = bts[i];
+	}
+	
+	public void changeCharacterJoinRequirements(int value)
+	{
+		//1:avatarhood  2:rune  3:stone  4:random item  5:random herb  6:random
+		value--;
+		byte[] reqs = {0, 0, 0, 0, 0, 0, 0, 0};
+		String baseReqs = "14 1a 19";
+		byte[] brs = strToBytes(baseReqs);
+		String itemReqs = "29 2a 2b 2c 2d 2f 30 31 32 34 35 36 37 38";  //2e is scale 33 is wheel
+		byte[] irs = strToBytes(itemReqs);
+		String herbReqs = "1f 20 21 22 23 24 25 26";
+		byte[] hrs = strToBytes(herbReqs);
+		//byte[] reqs2 = {0, 0, 0, 0, 0, 0, 0, 0};
+		for(int i = 0; i < 8; i++)
+		{
+			int vv = value;
+			if(vv == 5)
+				vv = (int) (UltimaRando.rand() * 6);
+			if(vv < 3)
+				reqs[i] = brs[vv]; 
+			else if(vv == 3)
+			{
+				int b = (int) (UltimaRando.rand() * irs.length);
+				reqs[i] = irs[b];
+			}
+			else
+			{
+				double d = UltimaRando.rand();
+				if(d < 0.2)
+				{
+					int r = (int) (d * 30.0);  //x5 to make 1, then x6 for each possibility
+					reqs[i] = hrs[r];
+				}
+				else if(d < 0.6)
+					reqs[i] = hrs[6];
+				else
+					reqs[i] = hrs[7];
+			}
+		}
+		//put this table at a:bf96
+		writeBytes(reqs, "a:bf96", "Character join requirements");
+		
+		//at f:cfb7, call the new function
+		String out = "a9 0a 20 33 f3 20 70 bf ea ea";
+		byte[] bts = strToBytes(out);
+		writeBytes(bts, "f:cfb7", null);
+		
+		//at a:bf70, put the function to test the requirement
+		out =   "a9 68 85 f4 ba bd 05 01 aa bd 95 bf c9 1b " +
+		        "85 f3 a0 00 b1 f3 b0 03 3d e6 cf f0 04 " +
+				"a0 01 10 02 a0 0a a5 5e 4c 33 f3";
+		bts = strToBytes(out);
+		writeBytes(bts, "a:bf70", "Character join requirements");
+		
+		//now change character rejection text to reflect the new requirements
+		String[] bases = {"Then master ", "Then show me the\nrune of ", "Then show me the\n", "Then show me a\n", "Then bring me some\n"};
+		String[] virtues = {"<Honesty>", "<Compassion>", "<Valor>", "<Justice>", "<Sacrifice>", "<Honor>", "<Spirituality>", "<Humility>"};
+		String[] stones = {"blue stone", "yellow stone", "red stone", "green stone", "orange stone", "purple stone", "white stone", "black stone"};
+		String[] herbs = {"ash", "ginseng", "garlic", "silkweb", "moss", "pearl", "fungus", "manroot"};
+		String[] items = {"torch", "gem", "key", "oil", "sextant", "", "flute", "candle", "book", "bell", "", "horn", "skull", "<K>-Truth", "<K>-Cour", "<K>-Love"};
+		int[] pages = {5,8,3,5,4,6,8,2};
+		int[] aligns = {6,6,6,6,6,6,6,6};
+		int[] locs = {10809, 15278, 9841, 12517, 10146, 12295, 9355, 15691};
+		//put the output at the byte before locs
+		TextFinder tf = new TextFinder(this);
+		for(int i = 0; i < 8; i++)
+		{
+			int loc = 16384 * pages[i] + locs[i];
+			String makeMe = "";
+			if(reqs[i] == 20)  //avatarhood
+				makeMe = bases[0] + virtues[i];
+			else if(reqs[i] == 26)
+				makeMe = bases[1] + virtues[i];
+			else if(reqs[i] == 25)
+				makeMe = bases[2] + stones[i];
+			else if(reqs[i] < 41)
+				makeMe = bases[4] + herbs[reqs[i] - 31];
+			else
+				makeMe = bases[3] + items[reqs[i] - 41];
+			byte[] ntext = tf.encodeSpokenText(loc, makeMe + ".", aligns[i], true);
+			for(int j = 0; j < ntext.length; j++)
+				romData[loc - 1 + j] = ntext[j];
+		}
+		
+	}
+	
 	public void changeShrines()
 	{
 		//change the base of the statue to stairs
 		byte[] tile = {90,91,92,93};
-		writeBytes(tile, "4:a201");
+		writeBytes(tile, "4:a201", "Useful Runes");
 		
 		byte[] aa = {21};  //open the stairs for access
-		writeBytes(aa, "4:a23d");
+		writeBytes(aa, "4:a23d", "Useful Runes");
 		
 		//Shrine ss = new Shrine(this);
 		
@@ -868,7 +1048,7 @@ class NESRom
 		///at f:e90a, code to call my edited function
 		String code = "a9 0d 20 31 f3 4c 00 bf 68 4c 1e e9";
 		byte[] ts = strToBytes(code);
-		writeBytes(ts, "f:e90a");
+		writeBytes(ts, "f:e90a", "Useful Runes");
 		
 		//at d:bf00 function to properly handle event
 		code = "a5 47 c9 24 d0 31 a5 4b c9 23 b0 2b c9 1b 90 27 ";
@@ -879,7 +1059,7 @@ class NESRom
 		code += "a9 b4 48 a9 c5 48 a9 00 a8 8d 35 68 4c 31 f3 ";
 		code += "b9 78 bf 4a 4a 4a 09 80 85 4b 60";
 		ts = strToBytes(code);
-		writeBytes(ts, "d:bf00");
+		writeBytes(ts, "d:bf00", "Useful Runes");
 		
 		//at d:bf80, put the data
 		
@@ -889,7 +1069,7 @@ class NESRom
 			romData[dloc + i] = UltimaRando.shrineDests[i];
 			//romData[dloc + i + 8] = xys[i];
 		}
-		
+		allocate(dloc, 16, "Dungeon Randomization");
 		
 		//at e9d5, modify it so that the write to 06c0 happens earlier
 		int loc1 = findMemLoc("f:e9d5");
@@ -909,7 +1089,7 @@ class NESRom
 			k++;
 		}
 		wme[42] = -48;  //"d0"
-		writeBytes(wme, "f:e9d5");
+		writeBytes(wme, "f:e9d5", "Useful Runes");
 	}
 	
 	private void changeGateSpellCities(byte[] ord)
@@ -1121,6 +1301,7 @@ class NESRom
 		byte[] fx = strToBytes(s);
 		for(int i = 0; i < fx.length; i++)
 			romData[256602 + i] = fx[i];
+		allocate(256602, fx.length, "Brit Balloon");
 	}
 	
 	public String getODLocations()
@@ -1168,6 +1349,7 @@ class NESRom
 		int dataLoc = 256695;
 		for(int i = 0; i < block.length; i++)
 			romData[i + dataLoc] = block[i];
+		allocate(256695, block.length, "Change OD Locations");
 		//eliminate the "early exit" from the lookup (3e9a6-3e9a7 -> nop (ea,-22))
 		romData[256422] = -22;
 		romData[256423] = -22;
@@ -1363,6 +1545,36 @@ class NESRom
 			}
 			rv += "\n";
 		}
+		//character join
+		int cjoinloc = findMemLoc("a:bf96");
+		String[] charNames = {"Mariah", "Iolo", "Geoff", "Jaana", "Julius", "Dupre", "Shamino", "Katrina"};
+		String[] herbs = {"ash", "ginseng", "garlic", "silkweb", "moss", "pearl", "fungus", "manroot"};
+		String[] joinItems = {"torch", "gem", "key", "oil", "sextant", "", "flute", "candle", "book", "bell", "", "horn", "skull", "<K>-Truth", "<K>-Cour", "<K>-Love"};
+		for(int i = 0; i < 8; i++)
+		{
+			byte cj = romData[cjoinloc + i];
+			if(cj != 0)
+			{
+				String s = charNames[i] + " requires ";
+				if(cj == 20)  //p-avatarhood
+					s += "partial avatarhood";
+				else if(cj == 26)
+					s += "the rune";
+				else if(cj == 25)
+					s += "the stone";
+				else if(cj >= 31 && cj <= 38)
+				{
+					//String[] herbs = {"ash", "ginseng", "garlic", "silkweb", "moss", "pearl", "fungus", "manroot"};
+					s += "the herb " + herbs[cj - 31];
+				}
+				else
+				{
+					s += "the item " + joinItems[cj - 41];
+				}
+				s += " to join";
+				rv += s + "\n";
+			}
+		}
 		return rv;
 	}
 	
@@ -1422,7 +1634,7 @@ class NESRom
 		return rv;
 	}
 	
-	public boolean changeSearchLocItems(ArrayList<Byte> newItems, int mode)
+	public boolean changeSearchLocItems(ArrayList<Byte> newItems, int mode)  //no need for allocation
 	{
 		String[] castleLocs = {"a601", "abd3"};
 		String[] runeLocs = {"1635b", "239b1", "1f0d6", "168e1", "12650", "1a44f", "65e6", "1ae0a"};
@@ -1479,7 +1691,7 @@ class NESRom
 		{
 			byte bb = newItems.get(j);
 			byte[] arr = {bb};
-			writeBytes(arr, "4:aaa2");
+			writeBytes(arr, "4:aaa2", null);
 			j++;
 		}
 		if(j != newItems.size())
@@ -1544,7 +1756,7 @@ class NESRom
 		tf.replaceSpokenText(93248, 93288, sss, 2);
 	}
 	
-	public void changeGold(int newVal)
+	public void changeGold(int newVal)  //no allocation needed
 	{
 		byte g1 = (byte) (newVal & 255);
 		byte g2 = (byte) (newVal >> 8);
@@ -1568,6 +1780,7 @@ class NESRom
 		int ff1 = 262073;  //f:ffa9
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+		allocate(ff1, fcb.length, "Change chest gold");
 		String fcall2 = "a9 ff";  //->ffa9  edit the "gold chest" micro function to do this (replace calls to c672)
 		fcb = strToBytes(fcall2);
 		ff1 = findMemLoc("0:aeb4");  //0:aeb4 - open outside chest
@@ -1591,12 +1804,14 @@ class NESRom
 		int ff1 = findMemLoc("d:bfc5");
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+		allocate(ff1, fcb.length, "Fixing Negate");
 		//point D:9683 to call BFC5
 		f2 = "20 c5 bf";
 		fcb = strToBytes(f2);
 		ff1 = 218771;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+		allocate(ff1, fcb.length, "Fixing Negate");
 	}
 	
 	public void fixShephardExp()  //preserves Shephard exp at the end of each battle
@@ -1607,6 +1822,7 @@ class NESRom
 		int fl = findMemLoc("9:ae3a");
 		for(int i = 0; i < fxb.length; i++)
 			romData[fl + i] = fxb[i];
+		allocate(fl, fxb.length, "Shephard Exp Fix");
 	} 
 	
 	public void fixLevelUp()  //ensures that bonuses from all levels are gained
@@ -1620,6 +1836,7 @@ class NESRom
 			System.out.println(s1 + "=>" + s2);*/
 			romData[loc1 + i] = romData[loc1 + 3 + i];
 		}
+		allocate(loc1, 17, "Fix Level Up");
 		loc1 += 17;
 		//insert your function call here
 		byte[] fcl = strToBytes("4c e0 bf");
@@ -1630,11 +1847,13 @@ class NESRom
 			System.out.println(s1 + "=>" + s2);*/
 			romData[loc1 + i] = fcl[i];
 		}
+		allocate(loc1, fcl.length, "Fix Level Up");
 		//change the code at the end to respect the function call
 		fcl = strToBytes("60 ea ea");
 		loc1 = findMemLoc("1:ba12");
 		for(int i = 0; i < fcl.length; i++)
 			romData[loc1 + i] = fcl[i];
+		allocate(loc1, fcl.length, "Fix Level Up");
 		//now the function
 		String str = "84 02 bc 68 68 c4 02 f0 06 " +
 					 "20 e2 b9 c8 d0 f6 " + 
@@ -1643,6 +1862,7 @@ class NESRom
 		loc1 = findMemLoc("1:bfe0");
 		for(int i = 0; i < fcl.length; i++)
 			romData[loc1 + i] = fcl[i];
+		allocate(loc1, fcl.length, "Fix Level Up");
 	}
 	
 	public void grantAvatarhoodAtStart()
@@ -1670,11 +1890,13 @@ class NESRom
 		int ff1 = this.findMemLoc("d:bfb0");
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+		allocate(ff1, fcb.length, "Avatarhood");
 		String fcall2 = "4c b0 bf";
 		fcb = strToBytes(fcall2);
 		ff1 = 221785;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+		allocate(ff1, fcb.length, "Avatarhood");
 	}
 	
 	public void grantRandomVirtue(int partAvatar, int virtueValue)
@@ -1713,17 +1935,20 @@ class NESRom
 				ra = virtueValue;
 			romData[ff1 + i] = (byte) ra;
 		}
+		allocate(ff1, 8, "Virtues");
 		romData[229318] = pAvVal;
 		String f2 = "a0 08 b9 ae bf 99 0c 68 88 10 f7 4c 42 c2";
 		byte[] fcb = strToBytes(f2);
 		ff1 = 229319;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+		allocate(ff1, fcb.length, "Virtues");
 		String fcall2 = "4c b7 bf";
 		fcb = strToBytes(fcall2);
 		ff1 = 221785;
 		for(int i = 0; i < fcb.length; i++)
 			romData[ff1 + i] = fcb[i];
+		allocate(ff1, fcb.length, "Virtues");
 	}
 	
 	public void changeViewSpell(boolean randDungeons, boolean stonesRandoed) //uses ffa1-ffa8
@@ -1738,6 +1963,7 @@ class NESRom
 		bts = strToBytes(jf);
 		for(int i = 0; i < bts.length; i++)
 			romData[262065 + i] = bts[i];
+		allocate(262065, bts.length, "View Spell 1");
 		
 		//put main string constructor at E:BE00 (3be10)
 		String scon = "ba 86 2b a2 3f a9 00 8d e1 06 8d e2 06 ac e3 06 ";  //16
@@ -1756,6 +1982,7 @@ class NESRom
 		//System.out.println("V0:" + bts.length);
 		for(int i = 0; i < bts.length; i++)
 			romData[245264 + i] = bts[i];
+		allocate(245264, bts.length, "View Spell 2");
 		
 		//put main string selector at E:BE5A (3be6a)
 		String ssel = "c6 2a c6 2a 20 00 be ad e0 06 c9 08 d0 f2 ";
@@ -1767,7 +1994,9 @@ class NESRom
 				//System.out.println("View fail 1:" + i);
 			romData[ll + i] = bts[i];
 		}
+		allocate(ll, bts.length, "View Spell 3");
 		ll += bts.length;
+		
 		//stone test at E:BE73 (3be83)
 		String stnt = "ad e2 06 f0 1c ae e0 06 ";
 		if(randDungeons)  //check the floor's stone room
@@ -1781,6 +2010,7 @@ class NESRom
 				//System.out.println("View fail 2:" + i);
 			romData[ll + i] = bts[i];
 		}
+		allocate(ll, bts.length, "View Spell 4");
 		ll += bts.length;
 		//put skeleton string at E:BE95 (3bea5)
 		String sstr = "16 00 1c 1f 1f 22 00 06 08 1c 00 0c 00 08 1c 06 00 13 18 15 23 24 23 0d 3e ";
@@ -1792,6 +2022,7 @@ class NESRom
 		//if(romData[245593] != 0)
 			//System.out.println("View fail 3:00");
 		romData[ll] = (byte) bts.length;
+		allocate(ll, 1, "View Spell 5");
 		ll++;
 		TextFinder tf = new TextFinder(this);
 		bts = tf.compressSpokenBytes(bts);
@@ -1801,6 +2032,7 @@ class NESRom
 				//System.out.println("View fail 3:" + i);
 			romData[ll + i] = bts[i];
 		}
+		allocate(ll, bts.length, "View Spell 6");
 		ll += bts.length;
 		//System.out.println(ll);
 		//also put the "you-have-item" method in
@@ -1814,7 +2046,7 @@ class NESRom
 				//System.out.println("View fail 4");
 			romData[245764 + i] = bts[i];
 		}
-		
+		allocate(245764, bts.length, "View Spell 7");
 		//temporarily 
 		//changeAlterRoomItems();
 		
@@ -1848,16 +2080,17 @@ class NESRom
 		{
 			romData[245442 + i] = bts[i];
 		}
+		allocate(245442, bts.length, "Item Find Function");
 		return 245442 + bts.length;
 	}
 	
 	private int putChestGrabber(int startLoc)   
 	{
 		//putItemFindFx();
-		String fx = "a9 b1 48 ae c3 06 bd fd bf c5 68 d0 20 ";  
+		String fx = "a9 b1 48 ae c3 06 bd fd bf c5 68 d0 12 ";  
 		fx += "bd fa bf 85 6b ";
-		fx += "29 36 c9 36 f0 08 ";  //fungus and manroot check (skip the chest set if item is fungus or manroot)
-		fx += "ad de 68 09 02 8d de 68 ";
+		/*fx += "29 36 c9 36 f0 08 ";  //fungus and manroot check (skip the chest set if item is fungus or manroot)
+		fx += "ad de 68 09 02 8d de 68 ";*/  //(no longer necessary)
 		//fx += "a5 6b 20 b2 be d0 0d ";
 		fx += "a9 b3 85 28 a9 ad 85 29 a9 bc 48 d0 03 "; 
 		fx += "a9 bf 48 a9 00 4c 31 f3"; 
@@ -1866,10 +2099,42 @@ class NESRom
 		{
 			romData[startLoc + i] = bts[i];
 		}
+		allocate(startLoc, bts.length, "Chest Grabber");
 		return startLoc + bts.length;
 	}
 	
-	public void changeAlterRoomItems(boolean chgScaleToo)
+	public void editDRangeEvent(int loc, boolean elimSpellsUL)  //edits the handler for setting chests as opened and spells as learned
+	{
+		//at f:d024, put the function call
+		
+		String faddr = Integer.toHexString((loc % 16384) + 32752);
+		System.out.println(faddr);
+		String[] f1 = {faddr.substring(0, 2), faddr.substring(2,4)};
+		String fx = "a9 0e 20 33 f3 20 " + f1[1] + " " + f1[0] +" ea";
+		byte[] bts = strToBytes(fx);
+		writeBytes(bts, "f:d024", null);
+		
+		int fxLoc = loc;
+		fx = "c0 0d d0 04 e0 01 f0 ";
+		if(elimSpellsUL)
+		{
+			fxLoc += 19;
+			faddr = Integer.toHexString((fxLoc % 16384) + 32752);
+			String[] f2 = {faddr.substring(0, 2), faddr.substring(2,4)};
+			fx += "06 bd e7 cf 20 " + f2[1] + " " + f2[0] + " a5 5e 4c 33 f3 ";
+			fx += "c0 02 f0 08 c0 03 d0 0b e0 03 b0 07 19 1b 68 99 1b 68 60 19 d1 68 99 d1 68 60";
+		}
+		else
+		{
+			fx += "09 bd e7 cf 19 d1 68 99 d1 68 a5 5e 4c 33 f3";
+		}
+		bts = strToBytes(fx);
+		for(int i = 0; i < bts.length; i++)
+			romData[loc + i] = bts[i];
+		allocate(loc, bts.length, "DRange event edit");
+	}
+	
+	public void changeAlterRoomItems(boolean chgScaleToo, boolean herbCooldown, boolean elimSpellsUL)
 	{
 		int s = putItemFindFx();
 		String faddr1 = Integer.toHexString((s % 16384) + 32751);  //32768 - 17
@@ -1882,18 +2147,21 @@ class NESRom
 		{
 			romData[s + i] = bts[i];
 		}
+		allocate(s, bts.length, "Alter Room Items");
 		s += bts.length;
 		String faddr2 = Integer.toHexString((s % 16384) + 32751);
 		String[] f2 = {faddr2.substring(0, 2), faddr2.substring(2,4)};
 		//E:BF0C - function to handle giving the item (or fail if stones are not correct) (3bf1c)
 		int cgLoc = putChestGrabber(s);
 		if(chgScaleToo)
-			changeScaleItem(cgLoc);
+			cgLoc = changeScaleItem(cgLoc, herbCooldown);
+		editDRangeEvent(cgLoc, elimSpellsUL);
 		//s += bts.length;   //245763 is MAX
 		//E:BFFA  item table (set earlier)
 		bts = altarItems;
 		for(int i = 0; i < bts.length; i++)
 			romData[245770 + i] = bts[i];
+		allocate(245770, bts.length, "Alter room items");
 		//E:BFFD  stone config table
 		fx = "96 8b a5";
 		bts = strToBytes(fx);
@@ -1901,6 +2169,7 @@ class NESRom
 		{
 			romData[245773 + i] = bts[i];
 		}
+		allocate(245773, bts.length, "Alter room items");
 		//0:B1B1 (12737) warps to new function to handle giving the item (@bf0c)
 		fx = "a9 " + f2[0] + " 48 a9 " + f2[1] + " 48 a9 0e 4c 31 f3 ea 4c 34 ae 4c 29 c2";
 		bts = strToBytes(fx);
@@ -1915,12 +2184,12 @@ class NESRom
 		//when you open a chest the game will OR the chest location into the list of opened chests
 		//this one adjustment changes that operation to an XOR to allow us to turn off the "chest" at the altar
 		//so that you can open the chests at other altars after finding them
-		byte bxx = 89;
+		/*byte bxx = 89;
 		byte[] bts2 = {bxx};
-		writeBytes(bts2, "f:d027");
+		writeBytes(bts2, "f:d027", null);*/
 	}
 	
-	public void changeScaleItem(int loc)  //if only doing this, loc should be -1
+	public int changeScaleItem(int loc, boolean herbCooldown)  //if only doing this, loc should be -1
 	{
 		int ll = loc;
 		boolean scaleOnly = false;
@@ -1939,7 +2208,7 @@ class NESRom
 		fx += "bd 33 68 d0 04 e6 03 d0 06 e8 c8 c0 06 90 f1 a4 03 ";
 		fx += "a9 " + f2[0] + " 48 a9 " + f2[1] + " 48 a9 0e 4c 31 f3 ea";
 		byte[] bts = strToBytes(fx);
-		writeBytes(bts, "4:afaf");
+		writeBytes(bts, "4:afaf", "Change Scale Item");
 		
 		//put the forward call function @ll
 		//ll jump target = 11 - 21 bytes (if in conjucntion with altar replace; else just do your own thing)
@@ -1952,7 +2221,10 @@ class NESRom
 		fx += "a5 03 d0 16 ";
 		fx += "a0 00 a9 c2 48 a9 28 48 a9 04 4c 31 f3 ";  //fail
 		fx += "c9 40 b0 05 ";  //out2
-		fx += "ad 01 68 d0 ea "; //moon
+		if(herbCooldown)
+			fx += "ad 01 68 d0 ea "; //moon check
+		else
+			fx += "a9 00 ea d0 ea ";
 		if(!scaleOnly)
 			fx += "ad d2 68 09 20 8d d2 68 a9 b1 48 4c " + ff[1] + " " + ff[0];  //out
 		else
@@ -1965,23 +2237,24 @@ class NESRom
 		bts = strToBytes(fx);
 		for(int i = 0; i < bts.length; i++)
 			romData[ll + i] = bts[i];
-		
+		allocate(ll, bts.length, "Change Scale Item");
+		return ll + bts.length;
 	}
 	
-	public void changeShrineCD()
+	public void changeShrineCD()   //no allocation needed
 	{
 		//this one explicitly sets the value; nop it out
 		//4:b1f3 = nop nop nop
 		byte[] bt = {-22, -22, -22};
-		writeBytes(bt, "4:b1f3");
+		writeBytes(bt, "4:b1f3", null);
 	}
 	
-	public void changeScaleCD()
+	public void changeScaleCD()  //no allocation needed
 	{
 		//this one uses the event chain to push a value on the stack; we make that value 0
 		//4:aae3 = 0;
 		byte[] bt = {0};
-		writeBytes(bt, "4:aae3");
+		writeBytes(bt, "4:aae3", null);
 	}
 	
 	public void changeInitSpells(byte[] newSpells)
@@ -1994,9 +2267,10 @@ class NESRom
 		byte[] nc = strToBytes(newCode);
 		for(int i = 0; i < nc.length; i++)
 			romData[ncs + i] = nc[i];
+		allocate(ncs, nc.length, "Change init spells");
 	}
 	
-	public void changeStartingEquipment(byte[] newEquip)
+	public void changeStartingEquipment(byte[] newEquip)  //no allocation needed
 	{
 		for(int i = 0; i < 8; i++)
 		{
@@ -2005,7 +2279,7 @@ class NESRom
 		}
 	}
 	
-	public void clearInitEquips()
+	public void clearInitEquips()  //no allocation needed
 	{
 		for(int i = 0; i < 8; i++)
 		{
@@ -2014,13 +2288,13 @@ class NESRom
 		}
 	}
 	
-	public void changeEquippableEquipment(byte[] newEquip)
+	public void changeEquippableEquipment(byte[] newEquip)  //no allocation needed
 	{
 		for(int i = 0; i < newEquip.length; i++)
 			romData[3956 + i] = newEquip[i];
 	}
 	
-	public void changeReagents(byte[] reagents)
+	public void changeReagents(byte[] reagents)  //no allocation needed
 	{
 		for(int i = 0; i < 8; i++)
 		{
@@ -2047,12 +2321,12 @@ class NESRom
 		villagerSwap(3, mode);
 	}
 	
-	public void allowPartyAbyss()
+	public void allowPartyAbyss()  //no allocation needed
 	{
 		//simply nop out 9 instructions at 0:b4d3
 		String fx = "ea ea ea ea ea ea ea ea ea";
 		byte[] bts = strToBytes(fx);
-		writeBytes(bts, "0:b4d3");
+		writeBytes(bts, "0:b4d3", null);
 	}
 	
 	public void changeAbyssLength(int val, int dungPostProcessingLoc)  //uses only bank 9 if dungeons are randomized, else uses ff78-ff88
@@ -2081,12 +2355,14 @@ class NESRom
 			byte[] sh = strToBytes(selHook);
 			for(int i = 0; i < sh.length; i++)
 				romData[255462 + i] = sh[i];
+			allocate(255462, sh.length, "Short Abyss 1");
 			
 			//place abyssSelector at ff78 (f:ff88, or 3ff88)
 			String abyssSelect = "a5 4b c9 87 d0 03 20 d8 bf 20 a3 e5 60";
 			byte[] nf = strToBytes(abyssSelect);
 			for(int i = 0; i < nf.length; i++)
 				romData[262024 + i] = nf[i];
+			allocate(262024, nf.length, "Short Abyss 2");
 			callLoc = 262030;
 		}
 		
@@ -2095,25 +2371,227 @@ class NESRom
 		byte[] nf = strToBytes(shortAbyss);
 		for(int i = 0; i < nf.length; i++)
 			romData[163816 + i] = nf[i];
+		allocate(163816, nf.length, "Short Abyss 3");
 		
 		String rep = "20 d8 bf";
 		byte[] rb = strToBytes(rep);
 		for(int i = 0; i < rb.length; i++)
 			romData[callLoc + i] = rb[i];
+		allocate(callLoc, rb.length, "Short Abyss 4");  //this will overlap abyss2
 		
 	}
 	
-	public void changeBusywork(boolean cst)  //may not be doable
+	public void eliminateSpellsUnlimited(int loc)  
 	{
-		/*if(cst)
-			villagerSwap(3);
-		else
+		editDRangeEvent(loc, true);
+	}
+	
+	public void combatRedesign()  
+	{
+		//Combat redesign implements an attack scheme where each attack has a
+		//magical component and a physical component, the two are added to
+		//get your total damage; defense is divided into magical and
+		//physical as well
+		
+		//input code to properly process defense at fb34
+		//makes the function calls necessary to do attacks properly
+		String fx = "29 77 85 01 a9 0a 20 33 f3 20 9e bf 20 33 f3 ea";
+		byte[] bts = strToBytes(fx);
+		writeBytes(bts, "f:fb34", "Combat redesign fcall");
+		
+		//input function to add physical and magical damage at a:bf9e
+		fx = "a5 01 c9 01 d0 04 a9 ff 85 01 " +
+			 "a9 0f 20 bf bf 0a 0a 85 d6 a9 f0 20 bf bf 4a 18 65 d6 85 d6 a5 5e 60";
+		bts = strToBytes(fx);
+		writeBytes(bts, "a:bf9e", "Combat redesign call 1");
+		
+		//input damage calculation function at a:bfbf
+		fx = "85 00 25 d5 aa a5 00 25 01 c9 10 b0 04 0a 0a 0a 0a 20 db f3 60";
+		bts = strToBytes(fx);
+		writeBytes(bts, "a:bfbf", "Combat redesign damage calculation");
+		
+		//input strength/agility bonus damage calculation at 9:b7ea
+		fx = "68 4a 4a 4a 4a aa f0 0d " +
+			 "a5 d5 29 0f c9 0f f0 05 " +
+			 "e6 d5 ca d0 f3 60";
+		bts = strToBytes(fx);
+		writeBytes(bts, "9:b7ea", "Combat redesign str bonus");
+		
+		//input intelligence bonus damage for spells at f:fe2b
+		fx = "8a 48 29 f0 18 65 d5 85 d5 68 29 08 f0 02 e6 d5 60";
+		bts = strToBytes(fx);
+		writeBytes(bts, "f:fe2b", "Combat redesign int bonus");
+		
+		//input new spell damage data for missile, fire, ice, energy, and defeat at fe44+{1,6,11,13,27}
+		int spellBase = findMemLoc("f:fe44");
+		romData[spellBase + 1] = 18;  //missile: 12h (8m+8p); old damage was 10
+		romData[spellBase + 6] = 50;  //fire: 32h (24m+8p); old damage was 22
+		romData[spellBase + 11] = 82; //ice:  52h (40m+8p); old damage was 36
+		romData[spellBase + 13] = 50; //energy: 32h (24m+8p); old damage was 32
+		romData[spellBase + 27] = 60; //defeat: 40h (32m+0p); old damage was 32
+		
+		//input new spell damage data for Tremor; your tremor at 0:a785, enemy tremor at 0:a7a3
+		spellBase = findMemLoc("0:a785");
+		romData[spellBase] = -50; //ceh (96m+60p); old damage was 255
+		
+		String etr = "a9 44 ea";
+		bts = strToBytes(etr);
+		//spellBase = findMemLoc("0:a7a3");
+		writeBytes(bts, "0:a7a3", null); //44h (32m+16p); old damage was 25
+		
+		//input new weapon values at f:fc9e (4 ranged, dagger, then meele)
+		fx = "01 82 85 87 98 02 03 05 07 08 19 2a 9b d2 2c 4c";
+		//old values:8,20,28,36,    12,20,28,36,48  ,56   ,56  ,48,  60,    80
+		//new values:8,20,28,8+32,  12,20,28,32,8+36,16+40,8+44,40+8,16+48, 32+48
+		bts = strToBytes(fx);
+		writeBytes(bts, "f:fc9e", null);
+		
+		//input new armor values (new armor values are like armor class; higher is worse) at f:fcae
+		fx = "ee ed ec dc bc c9 a9 a8 8c 88";
+		//mag def is 1st number, phys def is 2nd number (lower is better)
+		bts = strToBytes(fx);
+		writeBytes(bts, "f:fcae", null);
+		
+		//input new enemy values
+		generateEnemyTypes();
+	}
+	
+	private void generateEnemyTypes()
+	{
+		//points are treated as a distribution; each enemy gets up to 12 pts magical attack and defense
+		//attack type damage distribution
+		byte[] at = {9,3,0,8,0,0,3,0,   //Mariah and Jaana (enemy) gets 75%, 66% attack, Iolo and Shamino get 25% attack
+				     0,9,6,0,0,0,0,0,   //Flame gets 75%, Lord British is 50%
+				     0,0,0,0,12,12,6,9, //Druid, Black Wizard 100% magical, Pastor 50% magical, White Wiz 75%
+				     0,0,0,0,6,0,0,     //Old Woman 50% magical
+				     0,0,3,0,12,9,6,0,   //Bard 25%, Ghost 100%, Reaper 75%, Nixie 50%
+				     6,0,0,12,0,12,0,0,  //Balrog 50%, Wizard 100%, Wisp 100%
+				     9,3,3,0,0,0,0,0,    //Lich 75%, Ettin 25%, Phantom 25%
+				     0,0,0,0,6,0,12,3,    //Dragon 50%, Gazer 100%, Zorn 25%
+				     0,6};               //Demon 50%
+		//defense; this distributes defense to either magic or defense
+		//defense distribution (12=100% defense to magic, 0=100% defense to physical
+		byte[] df = {9,6,3,9,3,3,6,9,    //75% magical defense for Mariah, Jaana, Katrina; 50% Iolo, Shamino, others 33%
+			         0,12,6,3,0,0,0,0,	 //Flame 100% m, Lord British 50%, Queen 50%
+			         0,0,0,0,6,6,6,6,    //Druid, Black Wizard, Pastor, White Wiz 50% magical defense
+			         0,0,0,0,6,0,0,      //Old Woman 50% magical
+			         0,0,6,9,12,9,6,0,   //Bard 50% magic, Skeleton 75% magic, Ghost 100% magic, Nixie 50% magic
+			         3,0,0,6,12,12,0,0, //Balrog 25%, Wizard 50%, Mimic 100%, Wisp 100%
+			         12,0,12,12,0,0,0,0,  //Lich, Phantom, Slime all 100% magic
+			         0,0,0,0,6,0,9,6,     //Dragon and Zorn 50%, Gazer 75%
+			         0,6};                //Demon 50%
+		
+		for(int i = 1; i <= 65; i++)
+			redesignEnemyAtk(i, at[i - 1], false);
+		
+		//for(int i = 1; i <= 65; i++)
+		//	redesignEnemyAtk(i, at[i - 1], true);
+		
+		for(int i = 1; i <= 65; i++)
+			redesignEnemyDef(i, df[i - 1], false);
+		
+		//for(int i = 1; i <= 65; i++)
+		//	redesignEnemyDef(i, df[i - 1], true);
+	}
+	
+	private void redesignEnemyAtk(int idx, byte val, boolean tough) //the tough flag is for testing purposes
+	{
+		int atkL = 158617 + idx;
+		int atk = romData[atkL] & 255;
+		if(tough)
+			atk *= 3;
+		
+		int atkp = atk + 4;  
+		
+		
+		//byte enemyType = enemyTypes[idx - 1];
+		byte atkType = val;
+		int mag = (atkType * atkp) / 12;
+		atkp -= mag;
+		int fmag = mag / 8;
+		mag -= (fmag * 8);
+		if(mag > 0)
+			fmag++;
+		//mag /= 8;
+		if(atkp > 64)
+			atkp = 63;
+		byte finalAttack = (byte) ((fmag << 4) | (atkp >> 2));
+		if(atk >= 255)
+			finalAttack = (byte) -1;  //to account for 2's complement overflow
+		romData[atkL] = finalAttack;
+		
+		//System.out.println("Enemy #" + idx + "  atkType=" + atkType + " OldAtk=" + atk + " NewAtk=" + Integer.toHexString(finalAttack & 255));
+	}
+	
+	private void redesignEnemyDef(int idx, byte val, boolean tough)  //look at this
+	{	
+		int defL = 158682 + idx;
+		int def = romData[defL] & 255;
+		if(tough && def != 255)
 		{
-			villagerSwap(0);
-			villagerSwap(2);
+			def = Math.min(def * 3, 192);
 		}
-		romData[249912] = 27;
-		romData[249915] = 27;*/
+		//int defp = def;
+	
+		int defType = val;
+		//int vul = 255 - def;       //vul=60, m=9
+		//int mag = (defType * vul) / 12;  //45
+		//vul += mag;                //vul=15
+		int pdef = def;
+		int mag = 0;
+		
+		if(defType == 0)  //do nothing
+		{
+			
+		}
+		else if(defType == 12)  //boost pdef to 255
+		{
+			mag = pdef;
+			pdef = 255;
+		}
+		else if(def < 128)  //distribute defense
+		{
+			pdef = def / 2;
+			mag = def / 2;
+			mag += (defType * pdef) / 12;
+			if(mag > 0)
+				mag = Math.max(mag, 16);
+			int d = 12 - defType;
+			pdef += (d * pdef) / 12;
+			
+		}
+		else  //distribute vulnerability
+		{
+			pdef = (255 - def) / 2;
+			pdef = 255 - pdef;
+			mag = (255 - def) / 2;
+			mag = 255 - mag;
+			int c = (255 - def) / 12;
+			int d = 12 - defType;
+			mag -= d * c;
+			pdef -= defType * c;
+		}
+		int vul = 255 - pdef;
+		vul = 255 - pdef;
+		vul /= 16;
+		if(pdef > 16 &&  pdef < 128 && vul > 0)
+			vul--;
+		/*int mag = (defType * def) / 12;
+		int pdef = def - mag;
+		pdef = Math.max(pdef, 16);
+		int vul = 255 - pdef;*/
+		
+		//mag /= 2;              
+		//if(defType < 6)
+		
+		mag = 255 - mag;    //and subtract from 255
+		mag /= 16;
+		byte finalDefense = (byte) (((mag) << 4) | vul);
+		if(def == 255)
+			finalDefense = 0;
+		romData[defL] = finalDefense;
+		
+		//System.out.println("Enemy #" + idx + " defType=" + defType + " oldDef=" + def + " newDef=" + Integer.toHexString(finalDefense & 255));
 	}
 	
 	private void toughenEnemy(int idx)
@@ -2126,6 +2604,13 @@ class NESRom
 		int[] caps = {255, 255, 192, 255};
 		int[] muls = {3,3,3,5};
 		int[] gazerMuls = {3,2,2,5};
+		if(quarterlife)  //hp and atk not affected, but defense is
+		{
+			muls[0] = 1;
+			muls[1] = 1;
+			gazerMuls[0] = 1;
+			gazerMuls[1] = 1;
+		}
 		//26b58 - hp
 		locs[0] = 158552 + idx;
 		vals[0] = romData[locs[0]] & 255;
@@ -2140,6 +2625,9 @@ class NESRom
 		vals[3] = romData[locs[3]] & 255;
 		//check for gazerAI
 		byte ai = (byte) (romData[158747 + idx] & 15);
+		int st = 0;
+		//if(quarterlife)  //the quarterlife challenge turns off the enemy hp multiplier
+			//st = 1;
 		for(int i = 0; i < 4; i++)
 		{
 			if(ai != 12)
@@ -2161,7 +2649,7 @@ class NESRom
 	}
 	
 	//returns the list of enemies not toughened
-	public ArrayList<Integer> toughenEnemies(int amt)  //can be 10, 20, or 30
+	public ArrayList<Integer> toughenEnemies(int amt)  //can be 10, 20, or 30; no allocation needed
 	{
 		//the set of enemies that can be toughened are the first 8 (final boss), sailor(13), pirate(18), 
 		//and 0x23-0x41 (35-65), inclusive
@@ -2184,28 +2672,100 @@ class NESRom
 		return enemies;
 	}
 	
-	public void changeEncounterRoomEnemies()
+	public void changeEncounterRoomEnemies()  //no allocation needed; boss rooms will change encounter room enemies again
 	{
 		//beginning with 9:a55c, change every 4th number until you get to a 0
 		int wpos = this.findMemLoc("9:a55c");
 		int room = 0;
-		while(room < 36)
+		boolean replace = true;
+		while(room < 34)  //this function breaks after room 34 for... reasons...
 		{
 			if(romData[wpos] == 0)
 			{
 				wpos++;
 				room++;
+				/*if(bosses.contains((byte) room))
+					replace = false;
+				else
+					replace = true;*/
 			}
 			else
 			{
-				int r = (int) (UltimaRando.rand() * 31);
-				romData[wpos] = (byte) (r + 35);
+				if(replace)
+				{
+					int r = (int) (UltimaRando.rand() * 31);
+					romData[wpos] = (byte) (r + 35);
+				}
 				wpos += 4;
 			}
 		}
 	}
 	
-	public void changeEnemyAI()
+	public void changeEncounterRoomEnemies(int room, byte[] enemies)  //used to replace boss room enemies
+	{
+		//System.out.println("1Room " + room + "enemies=" + Arrays.toString(getEncounterRoomEnemies(room)));
+		int wpos = findMemLoc("9:a55c");
+		int croom = 0;
+		while(croom < room)
+		{
+			if(croom == 33 || croom == 44 || croom == 51 || croom == 54 || croom == 58)
+			{
+				croom++;
+				continue;
+			}
+			if(romData[wpos] == 0)
+			{
+				wpos++;
+				croom++;
+			}
+			else
+				wpos += 4;
+		}
+		for(int i = 0; i < enemies.length; i++)
+		{
+			romData[wpos] = enemies[i];
+			wpos += 4;
+		}
+		//System.out.println("2Room " + room + "enemies=" + Arrays.toString(enemies));
+		//System.out.println("3Room " + room + "enemies=" + Arrays.toString(getEncounterRoomEnemies(room)));
+	}
+	
+	public byte[] getEncounterRoomEnemies(int room)
+	{
+		int rpos = findMemLoc("9:a55c");
+		int croom = 0;
+		byte[] rv = {};
+		while(croom < room)
+		{
+			if(croom == 33 || croom == 44 || croom == 51 || croom == 54 || croom == 58)
+			{
+				croom++;
+				continue;
+			}
+			if(romData[rpos] == 0)
+			{
+				rpos++;
+				croom++;
+			}
+			else
+				rpos += 4;
+		}
+		if(room == 34 || room == 45 || room == 52 || room == 55 || room == 59)
+			return rv;
+		//System.out.println("ERoom " + room + " starts at " + rpos);
+		ArrayList<Byte> enemies = new ArrayList<Byte>();
+		while(romData[rpos] != 0)
+		{
+			enemies.add(romData[rpos]);
+			rpos += 4;
+		}
+		rv = new byte[enemies.size()];
+		for(int i = 0; i < rv.length; i++)
+			rv[i] = enemies.get(i);
+		return rv;
+	}
+	
+	public void changeEnemyAI()  //no allocation check needed
 	{
 		//randomizes enemy AI by assigning each enemy one of a possible 14 AIs
 		//26c1b - the last 4 bits determine AI; min is 0 max is 13 (D)
@@ -2256,6 +2816,7 @@ class NESRom
 			int s = 257114;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
+			allocate(257114, bts.length, "Villager Swap");
 			//step 2: ffb4 (3ffc4) swaps to page 3 and calls be46
 			code = "a9 03 20 33 f3 4c 46 be";
 			bts = strToBytes(code);
@@ -2263,18 +2824,21 @@ class NESRom
 			int l1 = bts.length + s;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
+			allocate(s, bts.length, "Villager Swap");
 			//step 2a: line d892 (3d8a2) calls ffbc
 			code = "20 bc ff";
 			bts = strToBytes(code);
 			s = 252066;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
+			allocate(s, bts.length, "Villager Swap");
 			//step 2c: ffbc loads the proper shop cleanup page and calls f333
 			code = "ad dc 06 20 33 f3 60";
 			bts = strToBytes(code);
 			s = l1;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
+			allocate(s, bts.length, "Villager Swap");
 			//step 3: page 3 be46 (0fe56) captures the city index, villager index, and swap-to page
 			//it then looks to find the villager you are talking to in a replacement table, depending on
 			//which villagers have been swapped; note that the swap-to page is stored twice to ensure compatibility with
@@ -2292,18 +2856,21 @@ class NESRom
 			s = 65110;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
+			allocate(s, bts.length, "Villager Swap");
 			//step 4: line ec5f (3ec6f) calls bf89 to cleanup (restore you to the proper city)
 			code = "4c 89 bf";
 			bts = strToBytes(code);
 			s = 257135;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
+			allocate(s, bts.length, "Villager Swap");
 			//step 5: line ec62 (3ec72) calls bf8f to cleanup
 			code = "20 8f bf";
 			bts = strToBytes(code);
 			s = 257138;
 			for(int i = 0; i < bts.length; i++)
 				romData[s + i] = bts[i];
+			allocate(s, bts.length, "Villager Swap");
 			int[] pgs = {1, 2, 3, 4, 5, 6, 7, 8, 9, 13};
 			for(int j = 0; j < pgs.length; j++)
 			{
@@ -2317,6 +2884,7 @@ class NESRom
 				s = page + 16281; //addr + 3f99  (16 byte shift)
 				for(int i = 0; i < bts.length; i++)
 					romData[s + i] = bts[i];
+				allocate(s, bts.length, "Villager Swap");
 			}
 		}
 		//start the array at fea3 - this array has room for 40 swaps
@@ -2413,6 +2981,7 @@ class NESRom
 		{
 			int r = (int) (UltimaRando.rand() * ints.size());
 			int s = ints.remove(r);
+			allocate(atLoc, src[k].length + dest[s].length, "Villager Swap");
 			for(int i = 0; i < src[k].length; i++)
 			{
 				romData[atLoc] = src[k][i];
@@ -2736,7 +3305,7 @@ class NESRom
 		HashMap<Integer, Integer> count = new HashMap<Integer, Integer>();
 		for(int k = 0; k < nTests; k++)
 		{
-			Dungeon[] newDs = UltimaRando.randomizeDungeons(rom);
+			Dungeon[] newDs = UltimaRando.randomizeDungeons(rom, true, false, new ArrayList<Byte>());
 			byte[] oldBlock = rom.getDungeonBlock();
 			byte[] newBlock = new byte[oldBlock.length];
 			int nbw = 2;
@@ -2798,7 +3367,7 @@ class NESRom
 		}
 	}
 	
-	public int changeDungeonBlock(Dungeon[] newDs, boolean randomizeERooms) throws Exception  //uses ff78-ffa0 + ffc3-ffd0
+	public int changeDungeonBlock(Dungeon[] newDs, boolean randomizeERooms, ArrayList<Byte> bosses) throws Exception  //uses ff78-ffa0
 	{
 		byte[] oldBlock = getDungeonBlock();
 		byte[] newBlock = new byte[oldBlock.length];
@@ -2852,8 +3421,9 @@ class NESRom
 		//dump the new block
 		for(int i = 0; i < newBlock.length; i++)
 			romData[memBankStart + i] = newBlock[i];
-		//System.out.println("Old block size = " + oldBlock.length);
-		//System.out.println("New block size = " + nsz);
+		allocate(memBankStart, newBlock.length, "Dungeon Randomization block");
+		System.out.println("Old block size = " + oldBlock.length);
+		System.out.println("New block size = " + nbw);
 		
 		//System.out.println("Here you have 360 free bytes");
 		int memBankEnd = 163528;
@@ -2862,7 +3432,7 @@ class NESRom
 		dsl = strToBytes(dStoneLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[code1 + i] = dsl[i];
-		
+		allocate(code1, dsl.length, "Dungeon Randomization stone room");
 		int code3 = code1 + dsl.length;  //method to copy stone room data from $06dx to $06d0 when loading floor
 		hLoad = "a8 bd d1 06 8d d0 06 98 20 39 95 60";
 		dsl = strToBytes(hLoad);
@@ -2871,7 +3441,7 @@ class NESRom
 			romData[code3 + i] = dsl[i];
 			nbw++;
 		}
-		
+		allocate(code3, dsl.length, "Dungeon Randomization stone room copy");
 		//dungeon floor updater (sets the stone room 06d0 to the proper number according to the
 		//floor you enter
 		int code4 = code3 + dsl.length;
@@ -2880,13 +3450,13 @@ class NESRom
 		dsl = strToBytes(dStoneEnter);
 		for(int i = 0; i < dsl.length; i++)
 			romData[code4 + i] = dsl[i];
-		
+		allocate(code4, dsl.length, "Dungeon Randomization floor update");
 		//put the deceit stair table here
 		int stair1 = code4 + dsl.length;
 		byte[] deceitStairs = newDs[0].floorTable;
 		for(int i = 0; i < deceitStairs.length; i++)
 			romData[stair1 + i] = deceitStairs[i];
-		
+		allocate(stair1, dsl.length, "Dungeon Randomization deceit stair table");
 		//System.out.println("DeceitStairs is " + deceitStairs.length + " bytes");
 		
 		//now dump all the other stair tables 
@@ -2896,6 +3466,7 @@ class NESRom
 		for(int i = 1; i < newDs.length; i++)
 		{
 			newDs[i].floorTableLoc = stairX + stairW;
+			allocate(stairX + stairW, newDs[i].floorTable.length, "Dungeon Randomization stair tables");
 			for(int j = 0; j < newDs[i].floorTable.length; j++)
 			{
 				romData[stairX + stairW] = newDs[i].floorTable[j];
@@ -2919,6 +3490,8 @@ class NESRom
 			romData[p1 + i] = (byte) Integer.parseInt(s2[1], 16);
 			romData[p2 + i] = (byte) Integer.parseInt(s2[0], 16);
 		}
+		allocate(p1, newDs.length, "Dungeon Randomization stair table ptr 1");
+		allocate(p2, newDs.length, "Dungeon Randomization stair table ptr 2");
 		
 		//now dump all the combat room tables and update pointer
 		stairX = 155844;
@@ -2937,9 +3510,11 @@ class NESRom
 			romData[newDs[i].encounterRoomTablePtr + 1] = (byte) Integer.parseInt(e2[0], 16);
 			for(int j = 0; j < newDs[i].encounterRoomTable.length; j++)
 			{
+				allocate(stairX + stairW, 1, "Dungeon Randomization eroom tables");
 				if(randomizeERooms && j % 3 == 2 && i < 7)
 				{
-					newDs[i].encounterRoomTable[j] = UltimaRando.randERoom(newDs[i].encounterRoomTable[j]);
+					if(!bosses.contains(newDs[i].encounterRoomTable[j]))
+						newDs[i].encounterRoomTable[j] = UltimaRando.randERoom(newDs[i].encounterRoomTable[j]);
 				}
 				romData[stairX + stairW] = newDs[i].encounterRoomTable[j];
 				stairW++;
@@ -2960,6 +3535,7 @@ class NESRom
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
+		allocate(hcode, dsl.length, "Dungeon Randomization dungeon selector");
 		int l1 = dsl.length;
 		
 		//point line E5D6 (3e5e6) to call dungeon selector at ff78
@@ -2972,6 +3548,7 @@ class NESRom
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
+		allocate(hcode, dsl.length, "Dungeon Randomization dungeon selector function call");
 		
 		//put dungeon selector2 after dungeon selector1 to call code1; uses ff8c-ffa0
 		hcode = 262024;
@@ -2984,7 +3561,7 @@ class NESRom
 		dsl = strToBytes(dungTest2);
 		for(int i = 0; i < dsl.length; i++)
 			romData[code5 + i] = dsl[i];
-		
+		allocate(code5, dsl.length, "Dungeon Randomization dungeon selector 2");
 		//put in dungeon load selector at ffc3 to call code4
 		/*hcode = 262099;
 		int code6 = hcode;
@@ -3006,6 +3583,7 @@ class NESRom
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
+		allocate(hcode, dsl.length, "Dungeon Randomization selector 2 fcall");
 		
 		//point line "Post process" in code2 to call code4
 		//code4 % 16384 + 32752
@@ -3017,6 +3595,8 @@ class NESRom
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
+		//no need to allocate this as this simply replaces code in an already allocated function
+		//allocate(hcode, dsl.length, "Dungeon Randomization post process fcall");
 		
 		//point line 94FD (2550d) and 9516 (25526) to call code3
 		String cd3 = Integer.toHexString(code3 - romPage + 32768);
@@ -3027,9 +3607,11 @@ class NESRom
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
+		allocate(hcode, dsl.length, "Dungeon Randomization code3 fcall 1");
 		hcode = 152870; //25526
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
+		allocate(hcode, dsl.length, "Dungeon Randomization code3 fcall 2");
 		
 		//change e5c5-e5c7 (3e5b7-3e5ba) - makes it point to my one huffman tree (+value swap)
 		hcode = 255445;
@@ -3037,6 +3619,7 @@ class NESRom
 		dsl = strToBytes(hLoad);
 		for(int i = 0; i < dsl.length; i++)
 			romData[hcode + i] = dsl[i]; 
+		allocate(hcode, dsl.length, "Dungeon Randomization tree swap");
 		
 		//point future code to look at the new data
 		/*hcode = 259021;
@@ -3053,6 +3636,8 @@ class NESRom
 		
 		//and to avoid a psychodelic experience, have the palette loader go to the proper location
 		romData[255680] = 0;
+		
+		
 		
 		//testing
 		/*for(int i = 0; i < newDs.length; i++)
@@ -3149,11 +3734,27 @@ class NESRom
 		return loc;
 	}
 	
-	private void writeBytes(byte[] bts, String start)
+	public String getMemLoc(int loc)
+	{
+		loc -= 16;
+		int pg = loc / 16384;
+		int addr = loc % 16384;
+		addr += 32768;
+		if(pg == 15)
+			addr += 16384;
+		String s = Integer.toHexString(pg) + ":" + Integer.toHexString(addr);
+		return s;
+	}
+	
+	private void writeBytes(byte[] bts, String start, String allocDesc)
 	{
 		int loc = findMemLoc(start);
 		for(int i = 0; i < bts.length; i++)
 			romData[loc + i] = bts[i];
+		if(allocDesc != null)
+		{
+			allocate(loc, bts.length, allocDesc);
+		}
 	}
 	
 	private void viewBytes(int loc, int nBytes)
@@ -3453,13 +4054,13 @@ class NESRom
 		//at d:bff0 the short initializer - 16b
 		String fx = "a9 44 85 f4 a9 b4 85 f5 a9 78 85 f7 20 e4 bf 60";
 		byte[] bts = strToBytes(fx);
-		writeBytes(bts, "d:bff0");
+		writeBytes(bts, "d:bff0", "Credits Text");
 		
 		
 		//at d:bfd0, the 5bit shift function - 28b
 		fx = "b1 f4 85 f1 a9 07 85 f3 ca 10 01 60 26 f1 26 f0 c6 f3 10 f4 e6 f4 d0 e8 e6 f5 d0 e4";
 		bts = strToBytes(fx);
-		writeBytes(bts, "d:bfd0");
+		writeBytes(bts, "d:bfd0", "Credits text");
 		
 		//at d:b5bc, put the decompressor - 53b old, 44 new
 		fx = "a2 05 20 d8 bf "
@@ -3472,6 +4073,7 @@ class NESRom
 				+ "84 f0 d0 d4";  //44 
 		bts = strToBytes(fx);
 		//writeBytes(bts, mem1);
+		allocate(mem1, bts.length, "Credits text");
 		for(int i = 0; i < bts.length; i++)
 		{
 			romData[mem1] = bts[i];
@@ -3486,6 +4088,7 @@ class NESRom
 		//after the previous, put the flow controller (jumped to, jumped out of) - 17b
 		fx = "b1 f6 f0 0a 85 12 c8 b1 f6 85 13 4c 01 b4 4c 2d b4";
 		bts = strToBytes(fx);
+		allocate(mem1, bts.length, "Credits text");
 		for(int i = 0; i < bts.length; i++)
 		{
 			romData[mem1] = bts[i];
@@ -3496,26 +4099,26 @@ class NESRom
 		fx = "a5 f5 d0 03 20 f0 bf a0 00 84 f0 84 f6 20 " + f1[1] + " " + f1[0] + " 84 f6 4c " + f2[1] + " " + f2[0];
 		fx += " 98 ea ea";
 		bts = strToBytes(fx);
-		writeBytes(bts, "d:b3ec");
+		writeBytes(bts, "d:b3ec", "Credits Text");
 		int t2 = findMemLoc("d:b3ec");
 		
 		//finally, at d:b413, point the cpu to load from f6
 		bts = strToBytes("f6");
-		writeBytes(bts, "d:b413");
+		writeBytes(bts, "d:b413", "Credits text");
 		
 		//d:b42c, change the branch back to point to b3fe
 		bts = strToBytes("d1");
-		writeBytes(bts, "d:b42c");
+		writeBytes(bts, "d:b42c", "Credits Text");
 		
 		//d:b3b4, change to add one more screen at the end credits (was 12, is now 13)
 		bts = strToBytes("0d");
-		writeBytes(bts, "d:b3b4");
+		writeBytes(bts, "d:b3b4", "Credits Text");
 		
 		//testing
-		int xx = findMemLoc("d:" + f1[0] + f1[1]);
+		/*int xx = findMemLoc("d:" + f1[0] + f1[1]);
 		System.out.println("findMemLoc = " + xx + " function at " + t1);
 		xx = findMemLoc("d:" + f2[0] + f2[1]);
-		System.out.println("findMemLoc = " + xx + " function at " + tt2);
+		System.out.println("findMemLoc = " + xx + " function at " + tt2);*/
 		/*viewBytes(t1, 70);
 		viewBytes(t2, 25);*/
 	}
@@ -3526,7 +4129,7 @@ class NESRom
 		int curr = 0;
 		int[] low = {0,31};
 		int[] hi = {32,63};
-		byte ctrl = 30;  //30=0-29; 31=30-59
+		byte ctrl = 30;  //30=0-29; 31=30-59; can lower to allow for 3 or 4 charsets
 		byte lctrl = 30;
 		int bitsLeft = 8;
 		int totalUsedBits = 0;
@@ -3587,6 +4190,29 @@ class NESRom
 		System.out.println("Total used bytes should be " + Math.ceil(totalUsedBits / 8.0));
 		return out;
 	}
+
+	public void allocate(int blockLoc, int length, String string) 
+	{
+		int ns = blockLoc;
+		int ne = blockLoc + length - 1;
+		for(int i = 0; i < usedSpace.size(); i += 2)
+		{
+			int start = usedSpace.get(i);
+			int end = start + usedSpace.get(i + 1) - 1;
+			
+			if((ns <= start && ne >= start) || (ns <= end && ne >= end) ||
+			   (ns >= start && ne <= end)   || (ns <= start && ne >= end))
+			{
+				System.out.println("Warning: allocation for " + string + " overlaps with previously allocated for " + 
+			                        usedDesc.get(i / 2));
+				System.out.println("    " + string + " allocation = " + getMemLoc(ns) + " to " + getMemLoc(ne) + ";" + 
+						            usedDesc.get(i / 2) + " allocation = " + getMemLoc(start) + " to " + getMemLoc(end));
+			}
+		}
+		usedSpace.add(blockLoc);
+		usedSpace.add(length);
+		usedDesc.add(string);
+	}
 }
 
 class FloorZone
@@ -3616,6 +4242,7 @@ class Floor
 	byte[] stairTable;
 	ArrayList<Point> upStairs;
 	ArrayList<Point> downStairs;
+	Rectangle bossForbiddenStairs;
 	
 	/*ArrayList<Point>[] zones;
 	ArrayList<Point> upStairs;
@@ -3728,7 +4355,7 @@ class Floor
 				ups.add(p);
 				byte aa = (byte) (p.y * 16 + p.x);
 				if(!(layout[p.y * 8 + p.x] == 1 || layout[p.y * 8 + p.x] == 3))
-					System.out.println("There is not an up stair at " + p.x + "," + p.y + " (=" + layout[p.y * 8 + p.x]);
+					System.out.println(this.origDName + " floor " + this.origDIndex + ": There is not an up stair at " + p.x + "," + p.y + " (=" + layout[p.y * 8 + p.x]);
 				data.add(aa);
 				data.add((byte) 0);
 			}
@@ -3741,7 +4368,7 @@ class Floor
 				downs.add(p);
 				byte aa = (byte) (p.y * 16 + p.x);
 				if(!(layout[p.y * 8 + p.x] == 2 || layout[p.y * 8 + p.x] == 3))
-					System.out.println("There is not a down stair at " + p.x + "," + p.y + " (=" + layout[p.y * 8 + p.x]);
+					System.out.println(this.origDName + " floor " + this.origDIndex + ": There is not a down stair at " + p.x + "," + p.y + " (=" + layout[p.y * 8 + p.x]);
 				boolean addMe = true;
 				for(int k = 0; k < data.size(); k += 2)
 				{
@@ -3859,6 +4486,7 @@ class Floor
 	
 	public int connectToBelow(Floor f)
 	{
+		//System.out.println("Connecting " + this.origDName + " " + origFloor + " to " + f.origDName + " " + origFloor);
 		int a = getDownCount();
 		int b = f.getUpCount();
 		int net = 0;
@@ -4067,6 +4695,8 @@ class Floor
 		{
 			Point pp = zn.points.get(i);
 			byte bb = layout[pp.y * 8 + pp.x];
+			if(stairsForbidden(pp))
+				continue;
 			if(bb == 0 || bb == 2 || bb == 5)
 				okForUp.add(pp);
 		}
@@ -4080,6 +4710,19 @@ class Floor
 		return px;
 	}
 	
+	private boolean stairsForbidden(Point pp) 
+	{
+		if(bossForbiddenStairs == null)
+			return false;
+		Rectangle bfs = bossForbiddenStairs;
+		if(pp.y >= bfs.y && pp.y < (bfs.y + bfs.height))
+		{
+			if(pp.x >= bfs.x && pp.x < (bfs.x + bfs.width))
+				return true;
+		}
+		return false;
+	}
+
 	public Point findRandDownstairs(FloorZone zn)
 	{
 		ArrayList<Point> okForUp = new ArrayList<Point>();
@@ -4087,6 +4730,8 @@ class Floor
 		{
 			Point pp = zn.points.get(i);
 			byte bb = layout[pp.y * 8 + pp.x];
+			if(stairsForbidden(pp))
+				continue;
 			if(bb == 0 || bb == 1 || bb == 5)
 				okForUp.add(pp);
 		}
@@ -4130,6 +4775,7 @@ class Floor
 				all.add(zn);
 			}
 		}
+		//System.out.println("floor " + );
 		zones = all;
 		//System.out.print(x)
 	}
@@ -4213,7 +4859,7 @@ class Floor
 		lcopy[y * 8 + x] = -127;
 		while(true)
 		{
-			x++;
+			x++;  //look right
 			if(x == 8)
 				x = 0;
 			if(isPassable(lcopy[y * 8 + x]))
@@ -4221,7 +4867,7 @@ class Floor
 				piz.add(new Point(x, y));
 				lcopy[y * 8 + x] = -127;
 			}
-			x -= 2;
+			x -= 2;  //look left
 			if(x < 0)
 				x = x + 8;
 			if(isPassable(lcopy[y * 8 + x]))
@@ -4230,7 +4876,7 @@ class Floor
 				lcopy[y * 8 + x] = -127;
 			}
 			x = piz.get(lastPoint).x;
-			y++;
+			y++;  //look down
 			if(y == 8)
 				y = 0;
 			if(isPassable(lcopy[y * 8 + x]))
@@ -4238,7 +4884,7 @@ class Floor
 				piz.add(new Point(x, y));
 				lcopy[y * 8 + x] = -127;
 			}
-			y -= 2;
+			y -= 2;  //look up
 			if(y < 0)
 				y = y + 8;
 			if(isPassable(lcopy[y * 8 + x]))
@@ -4272,6 +4918,17 @@ class Floor
 		else
 			s += getDownCount();
 		return origDName + " floor " + origFloor + s + ")";
+	}
+	
+	public String zoneReport()
+	{
+		String s = origDName + " floor " + origFloor + ":\n";
+		for(int i = 0; i < zones.size(); i++)
+		{
+			FloorZone fz = zones.get(i);
+			s += "Zone " + i + " nTiles=" + fz.points.size() + " ups=" + fz.upStairs.size() + " downs=" + fz.downStairs.size() + "\n";
+		} 
+		return s;
 	}
 
 	public void addUpstairsAt(Point px, FloorZone zn) 
@@ -4312,7 +4969,7 @@ class Dungeon
 	
 	Floor[] allFloors;
 	
-	byte a, x, y, bb, bitCount, bitStream, bitMask, nBits; //a,x,and y are PPU registers; bb counts as the zero flag, 
+	byte a, x, y, bb, bitCount, bitStream, bitMask, nBits; //a,x,and y are CPU registers; bb counts as the zero flag, 
 	                                                       //bitCount=$16, bitStream=$17, bitMask=$4, nBits=$5
 	int input, output;
 	
@@ -4329,6 +4986,374 @@ class Dungeon
 				stoneRoomEquiv = (byte) (-127 + i);
 	}
 	
+	private void viewFloor(int f)
+	{
+		System.out.println(name + " level " + f + ":");
+		for(int i = 0; i < 8; i++)
+		{
+			for(int j = 0; j < 8; j++)
+				System.out.print((i * 8 + j) + ":" + floorData[f][i * 8 + j] + ",");
+			System.out.println();
+		}
+	}
+	
+	public static byte[] makeBossRooms(NESRom rom)
+	{
+		//Deceit requires 1 ud, Shame requires 2 ud rooms; Covetous 2ud rooms and an F room,
+		//Wrong a T room, Despise a 4way room, Deceit two T rooms and a 4way
+		byte[] udPoss = rom.strToBytes("12 13 14 1c 26 43");
+		//byte[] udlens = ;
+		//12:8 13:5 14:5 1c:6 26:5 43:8
+		byte[] tPoss = rom.strToBytes("16 1d 21");
+		//byte[] tlens = ;
+		//16:5  1d:8  21:3
+		byte[] fPoss = rom.strToBytes("8 d 17 1b");
+		//byte[] flens = ;
+		//8:6, d:5 17:6 1b:7 2d:0
+		byte[] fourWayPoss = rom.strToBytes("a b c f 11 2c 39 3a");
+		//byte[] fourLens = ;
+		//a:7,b:5,c:7,f:6,11:5,2c:6,39:4,3a:4 
+		
+		byte[][] enemyCounts = {{6},
+								{8,5,5,6,5,8},
+								{5,8,3},
+								{6,5,6,7},
+								{8,5,7,6,5,6,4,4}};
+		
+		
+		
+		byte[][] enemyRooms = {{4}, udPoss, tPoss, fPoss, fourWayPoss};
+		
+		/*System.out.println("Encounter room enemy listing:");
+		for(int i = 0; i <= 70; i++)
+		{
+			System.out.println(i + ":" + Integer.toHexString(i) + ":" + Arrays.toString(rom.getEncounterRoomEnemies(i)));
+		}*/
+		
+		for(int i = 0; i < enemyRooms.length; i++)
+		{
+			for(int j = 0; j < enemyRooms[i].length; j++)
+			{
+				byte room = enemyRooms[i][j];
+				int rcount = rom.getEncounterRoomEnemies(room).length;
+				if(rcount != enemyCounts[i][j])
+					System.out.println("Enemy count mismatch in room #" + room + " expected " + enemyCounts[i][j] + " actual " + rcount);
+			}
+		}
+		
+		byte[] bRooms = new byte[12];
+		byte[] bIndex = {1, 0, 2, 4, 2, 4, 2, 1, 3, 1, 1, 1};
+		ArrayList<Byte> allBoss = new ArrayList<Byte>();
+		//Deceit - 2 rooms
+		bRooms[0] = (byte) (UltimaRando.rand() * udPoss.length);
+		bRooms[1] = 0;  //only 1 possibility for this room
+		//Despise - 3 rooms
+		bRooms[2] = (byte) (UltimaRando.rand() * tPoss.length);
+		bRooms[4] = (byte) (UltimaRando.rand() * tPoss.length);
+		bRooms[3] = (byte) (UltimaRando.rand() * fourWayPoss.length);
+		//Destard - 1 room
+		bRooms[5] = (byte) (UltimaRando.rand() * fourWayPoss.length);
+		//Wrong - 1 room
+		bRooms[6] = (byte) (UltimaRando.rand() * tPoss.length);
+		//Covetous - 3 rooms
+		bRooms[7] = (byte) (UltimaRando.rand() * udPoss.length);
+		bRooms[8] = (byte) (UltimaRando.rand() * fPoss.length);
+		bRooms[9] = (byte) (UltimaRando.rand() * udPoss.length);
+		//Shame - 2 rooms
+		bRooms[10] = (byte) (UltimaRando.rand() * udPoss.length);
+		bRooms[11] = (byte) (UltimaRando.rand() * udPoss.length);
+		
+		for(int i = 0; i < bRooms.length; i++)
+		{
+			byte rr = enemyRooms[bIndex[i]][bRooms[i]];
+			if(!allBoss.contains(rr))
+			{
+				allBoss.add(rr);
+				if(rr == 12)  //room OC (4x Reaper + 3x Lizard is just fine)
+					continue;
+				//curate the room's enemies
+				byte nEnemies = enemyCounts[bIndex[i]][bRooms[i]];
+			    //Balrog, Reaper, Dragon, Hydra, Gazer, Lich, Zorn, Mimic, Demon, Lizard, Phantom
+				byte[] possEnemies = rom.strToBytes("28 25 3c 3d 3e 30 3f 2c 41 40 32");
+			    byte[] eScores = {8,8,7,7,8,5,4,5,4,4,5};
+			    int minScore = Math.min(nEnemies * 7, 36);
+			    int score = 0;
+			    byte[] enemies = new byte[nEnemies];
+			    do
+			    {
+			    	score = 0;
+			    	int r = 0;
+					for(int j = 0; j < nEnemies; j++)
+					{
+						if(nEnemies <= 5)   //to facilitate easier meeting the escore
+							r = (int) (UltimaRando.rand() * 5);
+						else
+							r = (int) (UltimaRando.rand() * possEnemies.length);
+						enemies[j] = possEnemies[r];
+						score += eScores[r];
+					}
+			    } while(score < minScore);
+			    //replace enemies in eroom
+			    rom.changeEncounterRoomEnemies(rr, enemies);
+			}
+		}
+		
+		for(int i = 0; i < bRooms.length; i++)
+			bRooms[i] = enemyRooms[bIndex[i]][bRooms[i]];
+		
+		return bRooms;
+	}
+	
+	public void bossReport(NESRom rom, ArrayList<Byte> bossRooms)
+	{
+		String[] dnames = {"Deceit", "Despise", "Destard", "Wrong", "Covetous", "Shame"};
+		byte[] bossEnemies = rom.strToBytes("28 25 3c 3d 3e 30 3f 2c 41 40 32");
+		//byte[] bossRooms = rom.strToBytes("4 8 a b c d e f 11 12 13 14 16 17 1b 1c 1d ");
+		int[] floors = {6, 4, 6, 7, 6, 1};
+		for(int i = 0; i < allFloors.length; i++)
+		{
+			for(int j = 0; j < floors.length; j++)
+			{
+				if(allFloors[i].origDName.equals(dnames[j]) && allFloors[i].origFloor == floors[j])
+				{
+					//System.out.println("== Viewing boss floor for " + dnames[j] + " == ");
+					//viewFloor(i);
+					
+					//System.out.println("floor CRs:" + Arrays.toString(allFloors[i].combatRooms));
+					//System.out.println("dungn CRs:" + Arrays.toString(encounterRoomTable));
+					for(int k = 2; k < allFloors[i].combatRooms.length; k += 3)
+					{
+						byte broom = allFloors[i].combatRooms[k];
+						if(!bossRooms.contains(broom))
+							continue;
+						byte[] enemies = rom.getEncounterRoomEnemies(broom);
+						for(int l = 0; l < enemies.length; l++)
+						{
+							boolean found = false;
+							for(int m = 0; m < bossEnemies.length; m++)
+							{
+								if(enemies[l] == bossEnemies[m])
+								{
+									found = true;
+									break;
+								}
+							}
+							if(!found)
+								System.out.println("ERROR: enemy " + enemies[l] + " found in boss room " + broom + " is not allowed in a boss room");
+						}
+						//System.out.println("Enemies in #" + broom + ":" + Arrays.toString(enemies));
+					}
+					//System.out.println("===");
+				}
+			}
+		}
+	}
+	
+	public void bossRoomEdits(byte[] bossRooms, boolean randomizeFloors)
+	{
+		if(name.equals("Deceit"))
+		{
+			
+			//viewFloor(4);
+			//viewFloor(6);
+			//edit floors
+			floorData[6][47] = 48;
+			floorData[6][39] = 48;
+			floorData[6][30] = 31;
+			floorData[6][29] = 31;
+			floorData[6][37] = 31;
+			floorData[6][27] = 0;  //orig room
+			floorData[4][10] = 0;  //floor 4 useless bridge room
+			//System.out.println(Arrays.toString(encounterRoomTable));
+			//change eroom table
+			
+			//System.out.println("Deceit old=" + Arrays.toString(encounterRoomTable));
+			for(int i = 21; i < 30; i++)
+				encounterRoomTable[i - 3] = encounterRoomTable[i];
+			
+			//System.out.println("Deceit mid=" + Arrays.toString(encounterRoomTable));
+			//
+			encounterRoomTable[25] = 39;
+			encounterRoomTable[26] = bossRooms[0];  //up-down boss room
+			encounterRoomTable[27] = 6;
+			encounterRoomTable[28] = 47;
+			encounterRoomTable[29] = bossRooms[1];  //the only usable J boss room
+			allFloors[6].bossForbiddenStairs = new Rectangle(5, 3, 3, 3);
+			//System.out.println("ERoom Table Size=" + encounterRoomTable.length);
+			
+			//System.out.println("Deceit end=" + Arrays.toString(encounterRoomTable));
+			//report();
+		}
+		else if(name.equals("Despise"))  //no change to floor
+		{
+			//viewFloor(4);
+			//System.out.println("Despise:" + Arrays.toString(floorData[4]));
+			//System.out.println("ERoom Table Size=" + encounterRoomTable.length);
+			//System.out.println("Despise old=" + Arrays.toString(encounterRoomTable));
+			encounterRoomTable[17] = bossRooms[2];
+			encounterRoomTable[20] = bossRooms[3];
+			encounterRoomTable[23] = bossRooms[4];
+			//System.out.println("Despise end=" + Arrays.toString(encounterRoomTable));
+			allFloors[4].bossForbiddenStairs = new Rectangle(1, 6, 1, 1);
+		}
+		else if(name.equals("Destard"))
+		{
+			//viewFloor(6);
+			floorData[6][55] = 0;
+			floorData[6][36] = 48;
+			//System.out.println("Destard old=" + Arrays.toString(encounterRoomTable));
+			encounterRoomTable[31] = 36;
+			encounterRoomTable[32] = bossRooms[5]; //4-way boss room
+			//System.out.println("Destard end=" + Arrays.toString(encounterRoomTable));
+			allFloors[6].bossForbiddenStairs = new Rectangle(0, 4, 8, 1);
+			//System.out.println("Destard erooms=" + Arrays.toString(encounterRoomTable));
+			//System.out.println("Destard:" + Arrays.toString(floorData[6]));
+		}
+		else if(name.equals("Wrong"))  //no change to floor
+		{
+			//floor[7]
+			//System.out.println("Wrong old=" + Arrays.toString(encounterRoomTable));
+			encounterRoomTable[encounterRoomTable.length - 1] = bossRooms[6];
+			//System.out.println("Wrong end=" + Arrays.toString(encounterRoomTable));
+			allFloors[7].bossForbiddenStairs = new Rectangle(1, 2, 1, 1);
+		}
+		else if(name.equals("Covetous"))
+		{
+			//viewFloor(7);
+			floorData[6][33] = 31;
+			//floorData[6][9] = 0;   //stays the same (going nowhere)
+			floorData[6][24] = 0;    //removed secret room
+			//floorData[6][29] = 0;  //goes to different spot (down to altars)
+			floorData[6][31] = 0;    //removed encounter room (was bridge)
+			
+			allFloors[6].stairTable[3] = 2;
+			allFloors[6].stairTable[5] = 0;  //swap the destination indeces for stairs on floor 6
+			allFloors[7].stairTable[1] = 32;
+			allFloors[7].stairTable[5] = 16;  //swap destination indeces for stairs on floor 7
+			
+			if(randomizeFloors)  //remove the two staircases going down if randomizing dungeon layouts
+			{
+				floorData[6][29] = 0;
+				floorData[6][9] = 0;  //
+				
+				allFloors[6].printStairTable();
+				//from the stair table, remove entry 0 and entry 2
+				byte[] keep = {2,3,6,7,8,9};
+				byte[] ost = allFloors[6].stairTable;
+				byte[] nst = new byte[keep.length];
+				for(int i = 0; i < keep.length; i++)
+					nst[i] = ost[keep[i]];
+				//allFloors[6].stairTable = nst;
+				allFloors[6].setInitStairTable(nst);
+				/*allFloors[6].downStairs.remove(new Point(1,1));
+				allFloors[6].downStairs.remove(new Point(3,5));*/
+				
+			}
+			//floorData[6][61] = 3;
+			//System.out.println("Covetous old=" + Arrays.toString(encounterRoomTable));
+			byte[] newErooms = new byte[encounterRoomTable.length - 3];
+			for(int i = 0; i < encounterRoomTable.length - 9; i++)
+				newErooms[i] = encounterRoomTable[i];
+			for(int i = encounterRoomTable.length - 6; i < encounterRoomTable.length; i++)
+				newErooms[i - 3] = encounterRoomTable[i];
+			encounterRoomTable = newErooms;
+			//System.out.println("Covetous mid=" + Arrays.toString(encounterRoomTable));
+			encounterRoomTable[23] = bossRooms[7];
+			encounterRoomTable[26] = bossRooms[8];
+			encounterRoomTable[29] = bossRooms[9];
+			//System.out.println("Covetous end=" + Arrays.toString(encounterRoomTable));
+			
+			allFloors[6].bossForbiddenStairs = new Rectangle(0, 1, 8, 3);
+			//System.out.println("Covetous new=" + Arrays.toString(encounterRoomTable));
+			//allFloors[7].stairTable[]
+			//System.out.println("Covetous:" + Arrays.toString(floorData[6]));
+			
+			//System.out.println("Covetous stair table=" + Arrays.toString(allFloors[7].stairTable));
+			
+			
+		}
+		else if(name.equals("Shame"))
+		{
+			//viewFloor(1);
+			floorData[1][31] = 48;
+			floorData[1][23] = 48;
+			floorData[6][63] = 0;
+			floorData[6][43] = 0;
+			//System.out.println("Shame old=" + Arrays.toString(encounterRoomTable));
+			byte[] newERooms = new byte[encounterRoomTable.length + 3];
+			int f = 0;
+			for(int i = 0; i < 6; i++)
+			{
+				newERooms[f] = encounterRoomTable[i];
+				f++;
+			}
+			byte[] repl = {1, 23, 0, 1, 31, 0};
+			for(int i = 0; i < 6; i++)
+			{
+				newERooms[f] = repl[i];
+				f++;
+			}
+			for(int i = 6; i < 12; i++)
+			{
+				newERooms[f] = encounterRoomTable[i];
+				f++;
+			}
+			for(int i = 15; i < encounterRoomTable.length; i++)
+			{
+				newERooms[f] = encounterRoomTable[i];
+				f++;
+			}
+			encounterRoomTable = newERooms;
+			//System.out.println("Shame mid=" + Arrays.toString(encounterRoomTable));
+			encounterRoomTable[8] = bossRooms[10];
+			encounterRoomTable[11] = bossRooms[11];
+			//System.out.println("Shame end=" + Arrays.toString(encounterRoomTable));
+			
+			allFloors[1].bossForbiddenStairs = new Rectangle(7,4,1,1);
+		}
+		
+		resetFloorData();
+		//else if(name.equals("Hythloth"))
+			//viewFloor(1);
+	}
+	
+	private void resetFloorData() 
+	{
+		//System.out.println("resetting floor data for " + name);
+		//System.out.println(Arrays.toString(encounterRoomTable));
+		for(int i = 0; i < allFloors.length; i++)
+		{
+			allFloors[i].layout = floorData[i];
+			allFloors[i].calcZones();
+			//reset encounter room tables as well
+			byte[] roomTable = encounterRoomTable;
+			
+			if(roomTable != null)
+			{
+				ArrayList<Byte> rt = new ArrayList<Byte>();
+				int j = 0;
+				while(j < roomTable.length && roomTable[j] != i)
+					j += 3;
+				while(j < roomTable.length && roomTable[j] == i)
+				{
+					for(int k = 0; k < 3; k++)
+						rt.add(roomTable[j + k]);
+					j += 3;
+				}
+				byte[] rT = new byte[rt.size()];
+				for(int k = 0; k < rT.length; k++)
+					rT[k] = rt.get(k);
+				allFloors[i].setCombatRooms(rT);
+				//System.out.println(i + ":" + Arrays.toString(allFloors[i].combatRooms));
+			}
+			
+			//allFloors[i].setCombatRooms()
+			//System.out.println(allFloors[i].zoneReport());
+			//if(name.equals("Deceit") && i == 6)
+				//viewFloor(6);
+		}
+	}
+
 	public void addStairConnection(int topFloor, Point topStair, Point botStair)
 	{
 		int tsi = topStair.y * 16 + topStair.x;
@@ -5182,6 +6207,7 @@ class Dungeon
 			downs.add(new StairEntry(p, false, 0, zoneNum, destIndex));
 		}
 		dungeonWalk(ups, downs);
+		//System.out.println("Completed dungeon walk");
 		String rv = "";
 		//int marooned = 0;
 		ArrayList<FloorZone> marooned = new ArrayList<FloorZone>();
@@ -5198,9 +6224,12 @@ class Dungeon
 				}
 			}
 		}
+		//System.out.println(marooned.size() + " marooned zones");
 		int l = 0;
 		while(marooned.size() > 0)
 		{
+			//FloorZone fz = marooned.get(0);
+			
 			if(l >= marooned.size())
 				l = 0;
 			fz = marooned.get(l);
@@ -5354,6 +6383,7 @@ class Dungeon
 
 	public void reassemble() 
 	{
+		//System.out.println("reassembling " + name);
 		int stairLen = 0;
 		int roomLen = 0;
 		for(int i = 0; i < allFloors.length; i++)
@@ -5405,6 +6435,8 @@ class TextFinder
 	char[] c1;
 	char[] c2;
 	char[] c3;
+	String spCaps;
+	String spNoCaps;
 	
 	int foundThisLine;
 	
@@ -5423,19 +6455,26 @@ class TextFinder
 		c1 = co1;
 		c2 = co2;
 		c3 = co3;
+		/*byte[] oth = rom.strToBytes("00 00 be bf c3 d0 c6 c7 c8 c9 ca 00 00 be bf c1 c2 7f fe 3d 90 8a 20");
+		char[] caps = {' ', ' ', ' ', ' ', ' ', '-','\'', '*', '+', '&'};  //& is ankh
+		char[] nocaps = {' ', ' ', ' ',' ', '.', ',', ' ', '~', ' ', '!', '?', ' '};  //~ is P corner */
+		spNoCaps = "     -\'*+&";
+		spCaps = "    ., ~ !?";
 	}
 	
 	public String replaceSpokenText(int start, int end, String toReplace, int align)
 	{
 		decodeSpokenText(start - 5, end - start + 5, align, rom.romData);
-		System.out.println("");
-		byte[] s1 = encodeSpokenText(start, toReplace, align);
+		//System.out.println("");
+		byte[] s1 = encodeSpokenText(start, toReplace, align, false);
 		for(int i = 0; i < s1.length; i++)
 			rom.romData[start + i] = s1[i];
 		String rv = decodeSpokenText(start - 5, end - start + 5, align, rom.romData);
-		System.out.println("");
+		//System.out.println("");
 		return rv;
 	}
+	
+	
 	
 	public byte[] decompressSpokenBytesAt(int a)
 	{
@@ -5553,12 +6592,15 @@ class TextFinder
 		System.out.println(s2);
 	}
 	
-	public byte[] encodeSpokenText(int dataLoc, String toEncode, int align)
+	
+	
+	public byte[] encodeSpokenText(int dataLoc, String toEncode, int align, boolean startWithCount)  //if just looking for an encoding, use 8 as dataLoc
 	{
 		byte val = 0;
 		String rv = "";
 		int bitsLeft = 7;
-		byte src = rom.romData[dataLoc];
+		int special = 0;
+		byte src = rom.romData[dataLoc];  //initializes a fit; use 8 for generic fit
 		int a = src & 255;
 		byte[] oth = rom.strToBytes("00 00 be bf c3 d0 c6 c7 c8 c9 ca 00 00 be bf c1 c2 7f fe 3d 90 8a 20");
 		int[] res;
@@ -5577,6 +6619,39 @@ class TextFinder
 		{
 			//get the encoded character
 			char ch = toEncode.charAt(i);
+			if(ch == '|')  //output terminator char (60)
+			{
+				res = outputChar(a, bitsLeft, (byte) 60, out);
+				a = res[0];
+				bitsLeft = res[1];
+				break;
+			}
+			else if(ch == '<')  //special strings, such as virtues and keys
+			{
+				String spc = "";
+				while(ch != '>')
+				{
+					ch = toEncode.charAt(i);
+					spc += ch;
+					i++;
+				}
+				special += spc.length();
+				res = encodeSpecial(spc, lcase, a, bitsLeft, out);
+				a = res[0];
+				bitsLeft = res[1];
+				ctrl += res[2];
+				if(res[3] == 0)
+					lcase = false;
+				else
+					lcase = true;
+				//numLoc should always be false at the end here, as no special words end in numbers
+				/*if(spc.equals("<K>"))
+					numLoc = true;
+				else
+					numLoc = false;*/
+				i--;
+				continue;
+			}
 			//write control bits if necessary
 			byte cc = getControlChar(ch, lcase, numLoc, oth);
 			if(cc != -1)
@@ -5606,8 +6681,15 @@ class TextFinder
 		//System.out.println("a0=" + Long.toBinaryString(a & 255));
 		a += rom.romData[dataLoc] & bmask;
 		//System.out.println("a1=" + Long.toBinaryString(a & 255));
-		out.add(new Byte((byte) (a & 255)));
-		
+		out.add((byte) (a & 255));
+		if(startWithCount)
+		{
+			//System.out.println("enc len=" + toEncode.length() + " ctrl=" + ctrl + " spc=" + special);
+			if(align == 6)  // startWithCount is not recommended for aligns 2 or 4
+				ctrl++;     // take into account the extra character we are automatically inserting from original text
+			int outSize = toEncode.length() + ctrl - special;
+			out.add(0, (byte) outSize);
+		}
 		byte[] bb = new byte[out.size()];
 		for(int i = 0; i < out.size(); i++)
 		{
@@ -5636,6 +6718,101 @@ class TextFinder
 		
 	}
 	
+	private int[] encodeSpecial(String special, boolean lcase, int a, int bitsLeft, ArrayList<Byte> out) 
+	{
+		// encodes text with the virtues Honor, Compassion, Valor, Justice, etc. as well as parts of the 3-part key
+		special = special.substring(1, special.length() - 1); 
+		int ctrl = 0;
+		int lc = lcase? 1:0;
+		//int[] res = {a, bitsLeft, ctrl, lc};
+		int[] r2 = {0,0};
+		String[] virtues = {"Honesty", "Compassion", "Valor", "Justice", "Sacrifice", "Honor", "Spirituality", "Humility"};
+		//String[] keys = {"K-Truth", "K-Love", "K-Cour"};  simply put <K>
+		int vv = -1;
+		for(int i = 0; i < virtues.length; i++)
+		{
+			if(virtues[i].equals(special))
+			{
+				vv = i;
+				break;
+			}
+		}
+		if(vv == -1 && special.equals("K"))  //special key
+		{
+			if(!lcase)  //requires caps lock on
+			{
+				r2 = outputChar(a, bitsLeft, (byte) 0, out);
+				a = r2[0];
+				bitsLeft = r2[1];
+				lcase = !lcase;
+				ctrl++;
+			}
+			//output key
+			r2 = outputChar(a, bitsLeft, (byte) 7, out);
+			a = r2[0];
+			bitsLeft = r2[1];
+			ctrl++;
+			lc = lcase? 1:0;
+		}
+		int[] res = {a, bitsLeft, ctrl, lc};
+		if(vv == -1)
+			return res;
+		int[][] vbytes = {{49,4},{53,6},{0,0},{43,4},{48,5},{53,3},{43,6},{56,4}};
+		boolean[] ucase = {true, true, false, false, false, false, true, false};
+		if(lcase)  //put in a ucase
+		{
+			//byte outChar = encodeChar(ch, oth);
+			r2 = outputChar(a, bitsLeft, (byte) 0, out);
+			a = r2[0];
+			bitsLeft = r2[1];
+			lcase = !lcase;
+			ctrl++;
+		}
+		byte ch = encodeChar(virtues[vv].charAt(0), null);
+		r2 = outputChar(a, bitsLeft, ch, out);
+		a = r2[0];
+		bitsLeft = r2[1];
+		ctrl++;
+		if(!ucase[vv])  //some virtues keep you in ucase
+		{
+			r2 = outputChar(a, bitsLeft, (byte) 0, out);
+			a = r2[0];
+			bitsLeft = r2[1];
+			lcase = !lcase;
+			ctrl++;
+		}
+		if(vv == 2)  //Valor is special
+		{
+			r2 = outputChar(a, bitsLeft, (byte) 47, out);
+			a = r2[0];
+			bitsLeft = r2[1];
+			ctrl++;
+			r2 = outputChar(a, bitsLeft, (byte) 60, out);
+			a = r2[0];
+			bitsLeft = r2[1];
+			ctrl++;
+			r2 = outputChar(a, bitsLeft, (byte) 61, out);
+			a = r2[0];
+			bitsLeft = r2[1];
+			ctrl++;
+		}
+		else
+		{
+			int st = vbytes[vv][0];
+			int len = vbytes[vv][1];
+			for(int i = 0; i < len; i++)
+			{
+				r2 = outputChar(a, bitsLeft, (byte) (st + i), out);
+				a = r2[0];
+				bitsLeft = r2[1];
+				ctrl++;
+			}
+		}
+		lc = lcase? 1:0;
+		int[] res2 = {a, bitsLeft, ctrl, lc};
+		return res2;
+	}
+
 	private byte getControlChar(char curr, boolean lcase, boolean numloc, byte[] oth)
 	{
 		boolean cUcase = false;
@@ -5648,8 +6825,9 @@ class TextFinder
 		{
 			if(curr == ' ')
 				cUcase = true;
-			else
-			{
+			else if(spCaps.indexOf(curr) > 0)
+				cUcase = true;
+			/*{
 				for(int i = 0; i < c2.length; i++)
 				{
 					if(curr == c2[i])
@@ -5670,7 +6848,7 @@ class TextFinder
 						break;
 					}
 				}
-			}
+			}*/
 		}
 		/*if(prev >= 'A' && prev <= 'Z')
 			pUcase = true;
@@ -5705,7 +6883,13 @@ class TextFinder
 			return 6;
 		if(c == '\n')
 			return 62;
-		for(int i = 0; i < i2.length; i++)
+		int sc = spCaps.indexOf(c);
+		if(sc > 0)
+			return (byte) sc;
+		sc = spNoCaps.indexOf(c);
+		if(sc > 0)
+			return (byte) sc;
+		/*for(int i = 0; i < i2.length; i++)
 		{
 			if(c == c2[i])
 			{
@@ -5717,7 +6901,7 @@ class TextFinder
 						return (byte) (j % 11);
 				}
 			}
-		}
+		}*/
 		return 6;
 	}
 	
@@ -5732,7 +6916,7 @@ class TextFinder
 			writeBit--;
 			if(writeBit < 0)
 			{
-				out.add(new Byte((byte) (a & 255)));
+				out.add((byte) (a & 255));
 				writeBit = 7;
 			}
 		}
@@ -5743,8 +6927,9 @@ class TextFinder
 	public String decodeSpokenText(int dataLoc, int len, int align, byte[] allData)
 	{
 		//this data isn't really huffman encoded so much as it is encoded in 6-bit chunks
+		int start = dataLoc;
 		byte val = 0;
-		String rv = "";
+		String rv = "0:\n";
 		int bitsLeft = 7;
 		byte src = allData[dataLoc];
 		byte[] oth = rom.strToBytes("00 00 be bf c3 d0 c6 c7 c8 c9 ca 00 00 be bf c1 c2 7f fe 3d 90 8a 20");
@@ -5786,11 +6971,20 @@ class TextFinder
 				continue;
 			}
 			else if(val == 63)
-				return rv;
+			{
+				lcase = numLoc = false;
+			}
+			//	return rv;
 			else if(val == 62)
+			{
 				rv += "\n";
+				rv += (dataLoc - start) + ":\n";
+			}
 			else if(val == 16)
-				return rv;
+			{
+				lcase = numLoc = false;
+			}
+			//	return rv;
 			if(val >= 17)
 			{
 				val |= 128;
@@ -6256,6 +7450,7 @@ class OpeningScreen
 		//blockLoc = 196368;  //bf00 - will this be my bff?
 		for(int i = 0; i < finalData.length; i++)
 			rom.romData[blockLoc + i] = finalData[i];
+		rom.allocate(blockLoc, finalData.length, "Opening screen");
 		//System.out.println("Opening screen new size=" + finalData.length + " + 40 palette bytes requires " + (finalData.length + 40) + " bytes of ram ------------------------");
 		/*for(int i = 0; i < finalData.length; i++)
 		{
@@ -6271,6 +7466,7 @@ class OpeningScreen
 		int acDest = 196432; //bf40
 		for(int i = 0; i < alsoCopy.length; i++)
 			rom.romData[acDest + i] = alsoCopy[i];  //bf50
+		rom.allocate(acDest, alsoCopy.length, "Opening screen");
 	}
 	
 	private String needsMoreTree(String toAppend)
@@ -6906,8 +8102,8 @@ class Map
 			int failures = 0;
 			while(failures < 3000)
 			{
-				int rx = area.x + (int) (Math.random() * area.width);
-				int ry = area.y + (int) (Math.random() * area.height);
+				int rx = area.x + (int) (UltimaRando.rand() * area.width);
+				int ry = area.y + (int) (UltimaRando.rand() * area.height);
 				if(mapData[ry * width + rx] != terrain)
 				{
 					failures++;
@@ -6954,7 +8150,7 @@ class Map
 						yy = 0;
 				}
 				rv[3] = normalizePoint(new Point(xx, yy - 1));
-				int rr = (int) (Math.random() * 4);
+				int rr = (int) (UltimaRando.rand() * 4);
 				return rv[rr];
 			}
 			return null;
@@ -12167,7 +13363,7 @@ class Map
 			int failures = 0;
 			do
 			{
-				int r = (int) (Math.random() * mtnZones.size());
+				int r = (int) (UltimaRando.rand() * mtnZones.size());
 				MapZone mz = mtnZones.get(r);
 				fdp = mz.selectRandomEdge();
 				failures++;
@@ -13801,8 +14997,8 @@ class RandoWindow extends JFrame implements ActionListener
 		String[] opt = {"Output U4Spoiler.txt w/ROM", "Randomize Moongate Destinations", "Put Balloon next to Castle Britannia",
 				 "Randomize spells learned by Spell Teaching Villagers", 
 				 "Make the Overworld Map Smaller",
-				 "Useful Runes", "Turn off overworld random encounters"};
-		String[] fl = {"x", "O", "B", "T", "Z", "U", "K"};
+				 "Useful Runes", "Turn off overworld random encounters", "Eliminate Spells Unlimited"};
+		String[] fl = {"x", "O", "B", "T", "Z", "U", "K", "u"};
 		opts.add(new FlagPanel("General", opt, fl, true, false, this));  //1
 		
 		String[] shopt = {"Shuffle Shop Locations", "Enforce Shop Non-Compete", "Preserve Shop Types"};
@@ -13825,8 +15021,9 @@ class RandoWindow extends JFrame implements ActionListener
 		opts.add(new FlagPanel("Item Replacement", opIS, flaIS, true, true, this)); //4
 		
 		String[] optDun = {"Randomize Dungeon Layouts", "Randomize Encounter Rooms", "Randomize Encounter Room Enemies",
-						   "Randomize Enemy Abilities", "Modify the View Spell", "Allow Entire Party into the Abyss"};
-		String[] flaDun = {"D", "N", "F", "A", "W", "y"};
+						   "Randomize Enemy Abilities", "Modify the View Spell", "Allow Entire Party into the Abyss",
+						   "Combat redesign", "Boss Mode", "Quarterlife Challenge"};
+		String[] flaDun = {"D", "N", "F", "A", "W", "y", "t", "b", "q"};
 		opts.add(new FlagPanel("General", optDun, flaDun, true, false, this));  //5
 		
 		String[] optE = {"Make an additional 25% of enemies tough", "Make an additional 50% of enemies tough",
@@ -13882,6 +15079,26 @@ class RandoWindow extends JFrame implements ActionListener
 		}
 		opts.add(new FlagPanel("Partial Avatarhood", optPAV, flaPAV, false, false, this));  //11
 		
+		String[] optSC = new String[9];
+		String[] flaSC = new String[9];
+		String[] stChars = {"Mage", "Bard", "Fighter", "Druid", "Tinker", "Paladin", "Ranger", "Shepherd", "a random character"};
+		for(int i = 0; i < 9; i++)
+		{
+			optSC[i] = "Begin as " + stChars[i];
+			flaSC[i] = "h" + (i + 1);
+		}
+		opts.add(new FlagPanel("Starting Character", optSC, flaSC, false, false, this));  //12
+		
+		String[] optCJ = new String[6];
+		String[] flaCJ = new String[6];
+		String[] cjReqs = {"partial avatarhood in virtue", "virtue\'s rune", "virtue\'s stone", "a random herb", "a random item", "a random requirement"};
+		for(int i = 0; i < 6; i++)
+		{
+			optCJ[i] = "Characters require " + cjReqs[i] + " to join"; 
+			flaCJ[i] = "J" + (1 + i);
+		}
+		opts.add(new FlagPanel("Chatracter Join Requirements", optCJ, flaCJ, false, false, this)); //13
+		
 		String[] optC = new String[6];
 		String[] flaC = new String[6];
 		for(int i = 1; i < 7; i++)
@@ -13889,31 +15106,38 @@ class RandoWindow extends JFrame implements ActionListener
 			optC[i - 1] = "Add " + (25 * i) + " gold to each chest with gold";
 			flaC[i - 1] = "C" + i;
 		}
-		opts.add(new FlagPanel("Gold Chests", optC, flaC, false, false, this));  //12
+		opts.add(new FlagPanel("Gold Chests", optC, flaC, false, false, this));  //14
+		
 		String[] opt2 = {"0 Gold", "0-400 Gold", "0-1000 Gold"};
 		String[] fl2 = {"G0", "G1", "G2"};
-		opts.add(new FlagPanel("Gold", opt2, fl2, false, false, this));  //13
+		opts.add(new FlagPanel("Starting Gold", opt2, fl2, false, false, this));  //15
+		
 		String[] op5 = {"Shuffle", "Random"};
 		String[] fl5 = {"I1", "I2"};
-		opts.add(new FlagPanel("Starting Items", op5, fl5, false, false, this));  //14
+		opts.add(new FlagPanel("Starting Items", op5, fl5, false, false, this));  //16
+		
 		String[] op3 = {"0 Virtue", "Random Virtue (Same Values)", "Random Virtue (All Different Values)", 
 				"Worthy of Avatarhood", "Start as Avatar"};
 		String[] fl3 = {"V0", "V1", "V2", "V3", "V4"};
-		opts.add(new FlagPanel("Virtue", op3, fl3, false, false, this));  //15
+		opts.add(new FlagPanel("Virtue", op3, fl3, false, false, this));  //17
+		
 		String[] op4 = {"Shuffle", "Random"};
 		String[] fl4 = {"Q1", "Q2"};
-		opts.add(new FlagPanel("Equippable Items", op4, fl4, false, false, this));  //16
+		opts.add(new FlagPanel("Equippable Items", op4, fl4, false, false, this));  //18
 		
 		String[] op6 = {"Shuffle Amounts", "Random 0-9"};
 		String[] fl6 = {"H1", "H2"};
-		opts.add(new FlagPanel("Starting Herbs", op6, fl6, false, false, this));  //17
+		opts.add(new FlagPanel("Starting Herbs", op6, fl6, false, false, this));  //19
+		
 		String[] op7 = {"Randomly select known spells", "Remove Heal", "Remove Blink"};
 		String[] fl7 = {"S1", "S2", "S4"};
-		opts.add(new FlagPanel("Spells", op7, fl7, true, true, this)); //18
+		opts.add(new FlagPanel("Spells", op7, fl7, true, true, this)); //20
 		
-		String[] optCOO = {"Eliminate Meditation Cooldown", "Eliminate Scale Item Cooldown"};
-		String[] flaCOO = {"c1", "c2"};
-		opts.add(new FlagPanel("Elimate Cooldowns", optCOO, flaCOO, true, true, this));  //19
+		String[] optCOO = {"Eliminate Meditation Cooldown", "Eliminate Scale Item Cooldown", "Eliminate Herb Search Cooldown"};
+		String[] flaCOO = {"c1", "c2", "c4"};
+		opts.add(new FlagPanel("Elimate Cooldowns", optCOO, flaCOO, true, true, this));  //21
+		
+		
 		for(int i = 0; i < opts.size(); i++)
 		{
 			opts.get(i).preSelectFlags(initflags);
@@ -13925,7 +15149,7 @@ class RandoWindow extends JFrame implements ActionListener
 		JPanel gen1 = new JPanel(new BorderLayout());
 		gen1.add(opts.get(0), BorderLayout.CENTER);
 		JPanel genA = new JPanel(new GridLayout(2,1));
-		genA.add(opts.get(19));
+		genA.add(opts.get(21));
 		genA.add(opts.get(2));
 		gen1.add(genA, BorderLayout.SOUTH);
 		general.add(gen1);
@@ -13956,16 +15180,20 @@ class RandoWindow extends JFrame implements ActionListener
 		JPanel dun1 = new JPanel(new BorderLayout());
 		JPanel dun2 = new JPanel(new BorderLayout());
 		dun1.add(opts.get(5), BorderLayout.NORTH);
-		dun1.add(opts.get(7), BorderLayout.CENTER);
+		dun1.add(opts.get(10), BorderLayout.CENTER);
 		//System.out.println(opts.get(10));
 		//System.out.println(opts.get(8));
-		dun1.add(opts.get(8), BorderLayout.SOUTH);
+		//dun1.add(opts.get(8), BorderLayout.SOUTH);
 		//opts.add(opts.get(8));
 		//dun1.add(opts.get(18), BorderLayout.NORTH);
 		
-		dun2.add(opts.get(6), BorderLayout.NORTH);
-		dun2.add(opts.get(10), BorderLayout.CENTER);
-		dun2.add(opts.get(9), BorderLayout.SOUTH);
+		dun2.add(opts.get(7), BorderLayout.NORTH);
+		
+		JPanel dopts2 = new JPanel(new GridLayout(3, 1));
+		dopts2.add(opts.get(6));
+		dopts2.add(opts.get(9));
+		dopts2.add(opts.get(8));
+		dun2.add(dopts2, BorderLayout.CENTER);
 		
 		dungeon.add(dun1);
 		dungeon.add(dun2);
@@ -13975,31 +15203,55 @@ class RandoWindow extends JFrame implements ActionListener
 		dun1.revalidate();*/
 		
 		JPanel character = new JPanel();
-		character.setLayout(new GridLayout(1, 2));
+		character.setLayout(new GridLayout(1, 3));
+		
 		JPanel char1 = new JPanel(new GridLayout(2, 1));
-		char1.add(opts.get(11));
+		//grid(character, character join)
+		//grid(12,13)
+
 		char1.add(opts.get(12));
-		JPanel char2 = new JPanel(new BorderLayout());
-		char2.add(char1, BorderLayout.CENTER);
-		char2.add(opts.get(13), BorderLayout.SOUTH);
+		char1.add(opts.get(13));
+		character.add(char1);
+		
+		JPanel char2 = new JPanel(new GridLayout(2,1));
+		//grid(ahood,border(virtueC,goldS))
+		//grid(11,border(17,15)
+		
+		char2.add(opts.get(11));
+		
+		JPanel char2a = new JPanel(new BorderLayout());
+		char2a.add(opts.get(17), BorderLayout.CENTER);
+		char2a.add(opts.get(15), BorderLayout.SOUTH);
+		
+		char2.add(char2a);
 		character.add(char2);
 		
-		JPanel char1B = new JPanel(new BorderLayout());
-		char1B.add(opts.get(15), BorderLayout.NORTH);
-		//char1B.add(opts.get(8));
-		//char1.add(char1B);
-		JPanel char1C = new JPanel(new GridLayout(4,1));
-		char1C.add(opts.get(14));
-		for(int i = 16; i < opts.size() - 1; i++)
-			char1C.add(opts.get(i));
-		char1B.add(char1C, BorderLayout.CENTER);
+		JPanel char3 = new JPanel(new BorderLayout());
+		//border(chestsN,grid(si,ei,sh,sp)C)
+		//border(14N,grid(16,18,19,20)
+		
+		char3.add(opts.get(14), BorderLayout.NORTH);
+		
+		JPanel char3a = new JPanel(new GridLayout(4,1));
+		for(int i = 16; i < 21; i++)
+		{
+			if(i == 17)
+				continue;
+			char3a.add(opts.get(i));
+		}
+		char3.add(char3a, BorderLayout.CENTER);
+		character.add(char3);
+		
+		
+		
+		
 		/*JPanel char1D = new JPanel(new GridLayout(2, 1));
 		for(int i = 11; i < opts.size(); i++)
 			char1D.add(opts.get(i));
 		JPanel char2 = new JPanel(new GridLayout(2, 1));
 		char2.add(char1C);
 		char2.add(char1D);*/
-		character.add(char1B);
+		//character.add(char1B);
 		//character.add(char2);
 		
 		JPanel faq = new JPanel();
@@ -14180,6 +15432,75 @@ public class UltimaRando
 		return rVal;
 	}
 	
+	public static void findRejectionText(NESRom rom)
+	{
+		String[] rText = {"Then come for me", "Then return for me", "Then return when thou",
+				          "Thou art not yet", "Then return for me", "Unfortunately, I fear",
+				          "Experience more, and", "Thou dost not"};
+		String[] bases = {"Then master ", "Then show me the\nrune of ", "Then show me the\n", "Then show me a ", "Then bring me some "};
+		String[] virtues = {"<Honesty>", "<Compassion>", "<Valor>", "<Justice>", "<Sacrifice>", "<Honor>", "<Spirituality>", "<Humility>"};
+		String[] stones = {"blue stone", "yellow stone", "red stone", "green stone", "orange stone", "purple stone", "white stone", "black stone"};
+		int[] pages = {5,8,3,5,4,6,8,2};
+		int[] aligns = {6,6,6,6,6,6,6,6};
+		int[] locs = {10809, 15278, 9841, 12517, 10146, 12295, 9355, 15691};
+		//put the output at the byte before locs
+		TextFinder tf = new TextFinder(rom);
+		
+		/*for(int i = 7; i < 8; i++)
+		{
+			int dataLoc = pages[i] * 16384 + 14000;
+			for(int j = 4; j < 5; j++)
+			{
+				String s = tf.decodeSpokenText(dataLoc, 2384, j, rom.romData);
+				System.out.println("#" + i + " align " + j);
+				System.out.println(s);
+			}
+		}*/
+		for(int i = 6; i < 7; i++)
+		{
+			byte[] lookFor = tf.encodeSpokenText(8, rText[i], aligns[i], true);
+			int dataLoc = pages[i] * 16384 + locs[i];
+			System.out.println("Character #" + i + ":===\n");
+			//for(int j = -1000; j < 1000; j++)
+			//{
+				//boolean found = true;
+				//dataLoc += j;
+				/*for(int k = 1; k < lookFor.length - 1; k++)
+				{
+					if(lookFor[k] != rom.romData[dataLoc + j + k])
+					{
+						found = false;
+						break;
+					}
+				}*/
+				//if(found)
+				//{
+			        //21846 characters in 
+					String s = tf.decodeSpokenText(dataLoc, 150, aligns[i], rom.romData);
+					System.out.println(s);
+					//String makeMe = bases[2] + stones[i] + "|";
+					String makeMe = bases[1] + virtues[i] + ".";// <Compassion> <Valor> <Justice> <Sacrifice> <Honor> <Spirituality> <Humility> |";
+				byte[] ntext = tf.encodeSpokenText(dataLoc, makeMe, aligns[i], true);
+				for(int k = 0; k < ntext.length; k++)
+				{
+					System.out.print("[" + Integer.toHexString(ntext[k] & 255) + "]");
+					
+				}
+				System.out.println("\nstrlen=" + makeMe.length() + "  bitlen=" + ntext.length);
+				System.out.println("old size=" + rom.romData[dataLoc - 1] + "  new size=" + ntext[0]);
+				makeMe = "Honesty.|";// <Compassion> <Valor> <Justice> <Sacrifice> <Honor> <Spirituality> <Humility> |";
+				ntext = tf.encodeSpokenText(dataLoc, makeMe, aligns[i], true);
+				for(int k = 0; k < ntext.length; k++)
+				{
+					System.out.print("[" + Integer.toHexString(ntext[k] & 255) + "]");
+					
+				}
+				System.out.println("\nstrlen=" + makeMe.length() + "  bitlen=" + ntext.length);
+				//}
+			//}
+		}
+	}
+	
 	public static Dungeon[] constructAllDungeons(NESRom rom) 
 	{
 		HashMap<Integer, Integer> map = getHCount(rom);
@@ -14292,7 +15613,8 @@ public class UltimaRando
 	{
 		for(int k = 1; k <= 10000; k++)
 		{
-			randomizeDungeons(rom);
+			ArrayList<Byte> bosses = new ArrayList<Byte>();
+			randomizeDungeons(rom, true, true, bosses);
 			if(k % 100 == 0)
 				System.out.print("T");
 		}
@@ -14443,7 +15765,7 @@ public class UltimaRando
 	
 	public static byte[] shrineDests;
 	
-	public static Dungeon[] randomizeDungeons(NESRom rom)
+	public static Dungeon[] randomizeDungeons(NESRom rom, boolean randomize, boolean bossEdits, ArrayList<Byte> bosses)
 	{
 		Dungeon[] ds = loadDungeons(rom);
 		for(int i = 0; i < ds.length; i++)
@@ -14456,13 +15778,31 @@ public class UltimaRando
 				floors.add(ds[i].allFloors[j]);
 			}
 		}
+		//stone floors
 		Floor[] stf = new Floor[8];
 		int[] vv = {6,4,6,7,6,1,0,0};
 		for(int i = 0; i < 8; i++)
 			stf[i] = ds[i].allFloors[vv[i]];
+		
 		int dNo = 0;
 		int fNo = 1;
 		int net = 0;
+		//bosses = null;
+		if(bossEdits)
+		{
+			byte[] brooms = Dungeon.makeBossRooms(rom);
+			for(int i = 0; i < ds.length; i++)
+				ds[i].bossRoomEdits(brooms, randomize);
+			bosses = new ArrayList<Byte>();
+			for(int i = 0; i < brooms.length; i++)
+			{
+				if(!bosses.contains(brooms[i]))
+					bosses.add(brooms[i]);
+			}
+			UltimaRando.shrineDests = UltimaRando.initBossShrineDests();
+		}
+		if(!randomize)
+			return ds;
 		while(floors.size() > 0)
 		{
 			int r = (int) (UltimaRando.rand() * floors.size());
@@ -14496,6 +15836,12 @@ public class UltimaRando
 		//System.out.println("Net stair gain=" + net);
 		for(int i = 0; i < 6; i++)  //do not reassemble Hythloth or Abyss - it will randomize their stair tables!!!
 			ds[i].reassemble();
+		if(bossEdits)
+		{
+			for(int i = 0; i < ds.length; i++)
+				ds[i].bossReport(rom, bosses);
+		}
+		//System.out.println("done");
 		return ds;
 	}
 	
@@ -15063,11 +16409,18 @@ public class UltimaRando
 		setSeed((long) (Math.random() * Long.MAX_VALUE));  //this should be the only call to Math.random()
 		//testERoom();
 		//softlockSuperTest(10000);
-		//NESRom nr = null;
-		//try
-		//{
+		NESRom nr = null;
+		try
+		{
 			//nr = new NESRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
-			//nr = new NESRom("C:\\Users\\aearm\\Desktop\\fceux-2.2.2-win32\\Ultima - Quest of the Avatar (U).nes");
+			nr = new NESRom("C:\\Users\\aearm\\Desktop\\fceux-2.2.2-win32\\Ultima - Quest of the Avatar (U).nes");
+			//findRejectionText(nr);
+			//ArrayList<Byte> bosses = new ArrayList<Byte>();
+			
+			//Dungeon[] ds = randomizeDungeons(nr, true, true, bosses);
+			//testDungeonMake(nr);
+			nr.combatRedesign();
+			//nr.changeDungeonBlock(ds, false, bosses);
 			//nr.testEndCompress();
 			//nr = nr.randomize("M9Z1", "C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Deltima.nes");
 			/*if(nr.gameMap != null)
@@ -15086,13 +16439,13 @@ public class UltimaRando
 			//Dungeon[] ds = UltimaRando.randomizeDungeons(nr);
 			//nr.changeDungeonBlock(ds);
 			//nr.dumpRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Deltima.nes");
-		/*}
+		}
 		catch(Exception ex)
 		{
 			System.err.println(ex.getMessage());
 			ex.printStackTrace(System.err);
 			return;
-		}*/
+		}
 		//testDungeonMake(nr);
 		/*TextFinder tf = new TextFinder(nr);
 		byte[] x1 = tf.decompressSpokenBytesAt(11257);
@@ -15342,6 +16695,19 @@ public class UltimaRando
 		byte[] rv = new byte[16];
 		byte[] floors = {6,4,6,7,6,1,0,0};      //bits go 00dddfff
 		byte[] xys = {46,48,33,17,25,39,28,9};   //bits go 00yyyxxx
+		for(int i = 0; i < 8; i++)
+		{
+			rv[i] = (byte) (floors[i] + i * 8);
+			rv[i + 8] = xys[i];
+		}
+		return rv;
+	}
+	
+	private static byte[] initBossShrineDests()
+	{
+		byte[] rv = new byte[16];
+		byte[] floors = {6,4,6,7,6,1,0,0};      //bits go 00dddfff
+		byte[] xys = {31,0,12,26,47,15,28,9};   //bits go 00yyyxxx
 		for(int i = 0; i < 8; i++)
 		{
 			rv[i] = (byte) (floors[i] + i * 8);
