@@ -1,8 +1,18 @@
 # U4Rando
 Ultima 4 NES Randomizer
 
-Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6 or later and the Ultima 4 NES Rom.
+Download all the files and put them into the same directory.  If you have a .cfg file from older versions delete it.  This requires Java 1.6.1 64-bit version or later and the Ultima 4 NES Rom.
 See the FAQ for usage.
+
+New in ver 2.0
+  - Eliminate Hawkwind's questionaire and start as a character of your choice (or a random character).
+  - Randomize character join requirements (they now ask you to find stones, items, herbs, etc before joining you).
+  - Combat Redesign:  Attacks are divided into magical and physical components; some enemies now have 100% physical defense
+  - Boss mode: Access to all stone rooms are blocked by at least one boss room with strong enemies
+  - Eliminate the need for herbs to be found on new moons
+  - Eliminate Spells Unlimited (spells are put into your spellbook once you find its spell teacher; no need to inscribe it at Spells Unlimited)
+  - Quarterlife challenge: You and your character's HP levels are cut to 1/4 what they were in the original game
+  - Fixed the spell learning bug
 
 New in ver 1.7
   - Seed Ranks:  A seed is now ranked according to its difficulty.  You can see your rank in the end credits.
