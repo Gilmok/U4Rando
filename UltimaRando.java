@@ -16409,7 +16409,7 @@ public class UltimaRando
 		setSeed((long) (Math.random() * Long.MAX_VALUE));  //this should be the only call to Math.random()
 		//testERoom();
 		//softlockSuperTest(10000);
-		NESRom nr = null;
+		/*NESRom nr = null;
 		try
 		{
 			//nr = new NESRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Ultima - Quest of the Avatar (U).nes");  //the golden rom
@@ -16439,13 +16439,13 @@ public class UltimaRando
 			//Dungeon[] ds = UltimaRando.randomizeDungeons(nr);
 			//nr.changeDungeonBlock(ds);
 			//nr.dumpRom("C:\\Users\\AaronX\\Desktop\\fceux-2.2.3-win32\\Deltima.nes");
-		}
+		/*}
 		catch(Exception ex)
 		{
 			System.err.println(ex.getMessage());
 			ex.printStackTrace(System.err);
 			return;
-		}
+		}*/
 		//testDungeonMake(nr);
 		/*TextFinder tf = new TextFinder(nr);
 		byte[] x1 = tf.decompressSpokenBytesAt(11257);
