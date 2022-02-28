@@ -315,14 +315,14 @@ class NESRom
 		int changeShops = -1;
 		int dungeonPostProcessing = -1;
 		LinkedHashMap<String, Integer> flagMap = new LinkedHashMap<String, Integer>();
-		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "E",
+		String[] okFlags =  {"M", "D", "O", "B", "T", "A", "P", "W", "R", "q",
 				             "C", "V", "Q", "I", "H", "G", "S", "Y", "Z", "N",
 				             "U", "F", "K", "L", "v", "r", "e", "f", "d", "c",
-				             "y", "x", "h", "J", "t", "b", "q", "u"};
-		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, true,
+				             "y", "x", "h", "J", "t", "b", "E", "u"};
+		boolean[] usesVal = {true, false, false, false, false, false, true, false, true, false,
 				             true, true, true, true, true, true, true, true, false, false,
 				             false, false, false, true, true, true, true, true, true, true,
-				             false, false, true, true, false, false, false, false};
+				             false, false, true, true, false, false, true, false};
 		for(int i = 0; i < okFlags.length; i++)
 			flagMap.put(okFlags[i], -1);
 		while(flags.length() > 0)
@@ -2604,12 +2604,12 @@ class NESRom
 		int[] caps = {255, 255, 192, 255};
 		int[] muls = {3,3,3,5};
 		int[] gazerMuls = {3,2,2,5};
-		if(quarterlife)  //hp and atk not affected, but defense is
+		if(quarterlife)  //cut attack multiplier to 2 and max hp to 120 
 		{
-			muls[0] = 1;
-			muls[1] = 1;
-			gazerMuls[0] = 1;
-			gazerMuls[1] = 1;
+			caps[0] = 120;  //hp now capped at 120
+			muls[1] = 2;
+			//gazerMuls[0] = 1;
+			//gazerMuls[1] = 2;
 		}
 		//26b58 - hp
 		locs[0] = 158552 + idx;
@@ -3469,6 +3469,8 @@ class NESRom
 			allocate(stairX + stairW, newDs[i].floorTable.length, "Dungeon Randomization stair tables");
 			for(int j = 0; j < newDs[i].floorTable.length; j++)
 			{
+				//if(i == 4 && j == 0)
+					//System.out.println("Full Covetous stair table:" + Arrays.toString(newDs[i].floorTable));
 				romData[stairX + stairW] = newDs[i].floorTable[j];
 				stairW++;
 			}
@@ -5321,6 +5323,7 @@ class Dungeon
 	{
 		//System.out.println("resetting floor data for " + name);
 		//System.out.println(Arrays.toString(encounterRoomTable));
+		ArrayList<Byte> stairs = new ArrayList<Byte>();
 		for(int i = 0; i < allFloors.length; i++)
 		{
 			allFloors[i].layout = floorData[i];
@@ -5347,11 +5350,18 @@ class Dungeon
 				//System.out.println(i + ":" + Arrays.toString(allFloors[i].combatRooms));
 			}
 			
+			for(int j = 0; j < allFloors[i].stairTable.length; j++)
+				stairs.add(allFloors[i].stairTable[j]);
+			
+			
 			//allFloors[i].setCombatRooms()
 			//System.out.println(allFloors[i].zoneReport());
 			//if(name.equals("Deceit") && i == 6)
 				//viewFloor(6);
 		}
+		floorTable = new byte[stairs.size()];
+		for(int i = 0; i < floorTable.length; i++)
+			floorTable[i] = stairs.get(i);
 	}
 
 	public void addStairConnection(int topFloor, Point topStair, Point botStair)
@@ -15800,6 +15810,8 @@ public class UltimaRando
 					bosses.add(brooms[i]);
 			}
 			UltimaRando.shrineDests = UltimaRando.initBossShrineDests();
+			System.out.println("Covetous floor 6 stair table:" + ds[4].allFloors[6].printStairTable());
+			System.out.println("Covetous floor 7 stair table:" + ds[4].allFloors[7].printStairTable());
 		}
 		if(!randomize)
 			return ds;
