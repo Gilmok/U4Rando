@@ -312,6 +312,7 @@ class NESRom
 		boolean allEnemiesTough = false;
 		boolean elimSpellsUL = false;
 		boolean herbCooldown = true;
+		boolean redesignCombat = false;
 		int changeShops = -1;
 		int dungeonPostProcessing = -1;
 		LinkedHashMap<String, Integer> flagMap = new LinkedHashMap<String, Integer>();
@@ -515,7 +516,7 @@ class NESRom
 				changeCharacter(val);
 				break;
 			case 't':
-				combatRedesign();
+				redesignCombat = true;
 				break;
 			case 'u':
 				elimSpellsUL = true;
@@ -524,6 +525,9 @@ class NESRom
 			}
 			
 		}
+		
+		if(redesignCombat)  //do this after all enemies have been toughened
+			combatRedesign();
 		
 		if(randomizeItemLocs > -1)
 		{
@@ -1799,7 +1803,7 @@ class NESRom
 	public void fixNegate()  //clears out the negate spell upon death; this is a bug in the original game
 	{
 		//put negate fix at D:BFC5
-		String f2 = "a9 00 85 7d 20 16 f5 60";
+		String f2 = "a9 00 85 d7 20 16 f5 60";  //d7 not 7d!
 		byte[] fcb = strToBytes(f2);
 		int ff1 = findMemLoc("d:bfc5");
 		for(int i = 0; i < fcb.length; i++)
@@ -5324,6 +5328,8 @@ class Dungeon
 		//System.out.println("resetting floor data for " + name);
 		//System.out.println(Arrays.toString(encounterRoomTable));
 		ArrayList<Byte> stairs = new ArrayList<Byte>();
+		for(int j = 0; j < 8; j++)  //don't forget to copy the stair delta table!
+			stairs.add(floorTable[j]);
 		for(int i = 0; i < allFloors.length; i++)
 		{
 			allFloors[i].layout = floorData[i];
@@ -5359,9 +5365,15 @@ class Dungeon
 			//if(name.equals("Deceit") && i == 6)
 				//viewFloor(6);
 		}
+		//byte[] oldStairs = Arrays.copyOf(floorTable, floorTable.length);
 		floorTable = new byte[stairs.size()];
 		for(int i = 0; i < floorTable.length; i++)
 			floorTable[i] = stairs.get(i);
+		/*for(int i = 0; i < floorTable.length; i++)
+		{
+			if(floorTable[i] != oldStairs[i])
+				System.out.println("Stair difference found in " + this.name + " entry #" + i + "; old=" + oldStairs[i] + " new=" + floorTable[i]);
+		}*/
 	}
 
 	public void addStairConnection(int topFloor, Point topStair, Point botStair)
@@ -15810,8 +15822,8 @@ public class UltimaRando
 					bosses.add(brooms[i]);
 			}
 			UltimaRando.shrineDests = UltimaRando.initBossShrineDests();
-			System.out.println("Covetous floor 6 stair table:" + ds[4].allFloors[6].printStairTable());
-			System.out.println("Covetous floor 7 stair table:" + ds[4].allFloors[7].printStairTable());
+			/*System.out.println("Covetous floor 6 stair table:" + ds[4].allFloors[6].printStairTable());
+			System.out.println("Covetous floor 7 stair table:" + ds[4].allFloors[7].printStairTable());*/
 		}
 		if(!randomize)
 			return ds;
